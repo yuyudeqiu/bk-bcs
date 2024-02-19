@@ -7186,6 +7186,17 @@ func request_ClusterManager_GetBatchCustomSetting_0(ctx context.Context, marshal
 		_   = err
 	)
 
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
+
 	val, ok = pathParams["scopeType"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scopeType")
@@ -7231,6 +7242,17 @@ func local_request_ClusterManager_GetBatchCustomSetting_0(ctx context.Context, m
 		err error
 		_   = err
 	)
+
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
 
 	val, ok = pathParams["scopeType"]
 	if !ok {
@@ -7278,6 +7300,17 @@ func request_ClusterManager_GetBizTopologyHost_0(ctx context.Context, marshaler 
 		_   = err
 	)
 
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
+
 	val, ok = pathParams["scopeType"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scopeType")
@@ -7323,6 +7356,17 @@ func local_request_ClusterManager_GetBizTopologyHost_0(ctx context.Context, mars
 		err error
 		_   = err
 	)
+
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
 
 	val, ok = pathParams["scopeType"]
 	if !ok {
@@ -7370,6 +7414,17 @@ func request_ClusterManager_GetTopologyNodes_0(ctx context.Context, marshaler ru
 		_   = err
 	)
 
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
+
 	val, ok = pathParams["scopeType"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scopeType")
@@ -7415,6 +7470,17 @@ func local_request_ClusterManager_GetTopologyNodes_0(ctx context.Context, marsha
 		err error
 		_   = err
 	)
+
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
 
 	val, ok = pathParams["scopeType"]
 	if !ok {
@@ -7462,6 +7528,17 @@ func request_ClusterManager_GetTopologyHostIdsNodes_0(ctx context.Context, marsh
 		_   = err
 	)
 
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
+
 	val, ok = pathParams["scopeType"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scopeType")
@@ -7507,6 +7584,17 @@ func local_request_ClusterManager_GetTopologyHostIdsNodes_0(ctx context.Context,
 		err error
 		_   = err
 	)
+
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
 
 	val, ok = pathParams["scopeType"]
 	if !ok {
@@ -7554,6 +7642,17 @@ func request_ClusterManager_GetHostsDetails_0(ctx context.Context, marshaler run
 		_   = err
 	)
 
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
+
 	val, ok = pathParams["scopeType"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scopeType")
@@ -7599,6 +7698,17 @@ func local_request_ClusterManager_GetHostsDetails_0(ctx context.Context, marshal
 		err error
 		_   = err
 	)
+
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
 
 	val, ok = pathParams["scopeType"]
 	if !ok {
@@ -7646,6 +7756,17 @@ func request_ClusterManager_GetScopeHostCheck_0(ctx context.Context, marshaler r
 		_   = err
 	)
 
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
+
 	val, ok = pathParams["scopeType"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "scopeType")
@@ -7691,6 +7812,17 @@ func local_request_ClusterManager_GetScopeHostCheck_0(ctx context.Context, marsh
 		err error
 		_   = err
 	)
+
+	val, ok = pathParams["projectID"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "projectID")
+	}
+
+	protoReq.ProjectID, err = runtime.String(val)
+
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "projectID", err)
+	}
 
 	val, ok = pathParams["scopeType"]
 	if !ok {
@@ -13579,17 +13711,17 @@ var (
 
 	pattern_ClusterManager_DebugBkSopsTask_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"clustermanager", "v1", "bksops", "debug"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ClusterManager_GetBatchCustomSetting_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4, 1, 0, 4, 1, 5, 5, 1, 0, 4, 1, 5, 6, 2, 7}, []string{"clustermanager", "v1", "web", "customSettings", "scope", "scopeType", "scopeId", "batchGet"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ClusterManager_GetBatchCustomSetting_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4, 1, 0, 4, 1, 5, 5, 2, 6, 1, 0, 4, 1, 5, 7, 1, 0, 4, 1, 5, 8, 2, 9}, []string{"clustermanager", "v1", "web", "customSettings", "projects", "projectID", "scope", "scopeType", "scopeId", "batchGet"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ClusterManager_GetBizTopologyHost_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5, 2, 6, 2, 7}, []string{"clustermanager", "v1", "web", "scope", "scopeType", "scopeId", "topology", "hostCount"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ClusterManager_GetBizTopologyHost_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5, 1, 0, 4, 1, 5, 6, 1, 0, 4, 1, 5, 7, 2, 8, 2, 9}, []string{"clustermanager", "v1", "web", "projects", "projectID", "scope", "scopeType", "scopeId", "topology", "hostCount"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ClusterManager_GetTopologyNodes_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5, 2, 6, 2, 7, 2, 8}, []string{"clustermanager", "v1", "web", "scope", "scopeType", "scopeId", "topology", "hosts", "nodes"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ClusterManager_GetTopologyNodes_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5, 1, 0, 4, 1, 5, 6, 1, 0, 4, 1, 5, 7, 2, 8, 2, 9, 2, 10}, []string{"clustermanager", "v1", "web", "projects", "projectID", "scope", "scopeType", "scopeId", "topology", "hosts", "nodes"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ClusterManager_GetTopologyHostIdsNodes_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5, 2, 6, 2, 7, 2, 8}, []string{"clustermanager", "v1", "web", "scope", "scopeType", "scopeId", "topology", "hostids", "nodes"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ClusterManager_GetTopologyHostIdsNodes_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5, 1, 0, 4, 1, 5, 6, 1, 0, 4, 1, 5, 7, 2, 8, 2, 9, 2, 10}, []string{"clustermanager", "v1", "web", "projects", "projectID", "scope", "scopeType", "scopeId", "topology", "hostids", "nodes"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ClusterManager_GetHostsDetails_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5, 2, 6, 2, 7}, []string{"clustermanager", "v1", "web", "scope", "scopeType", "scopeId", "hosts", "details"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ClusterManager_GetHostsDetails_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5, 1, 0, 4, 1, 5, 6, 1, 0, 4, 1, 5, 7, 2, 8, 2, 9}, []string{"clustermanager", "v1", "web", "projects", "projectID", "scope", "scopeType", "scopeId", "hosts", "details"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ClusterManager_GetScopeHostCheck_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5, 2, 6, 2, 7}, []string{"clustermanager", "v1", "web", "scope", "scopeType", "scopeId", "host", "check"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_ClusterManager_GetScopeHostCheck_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5, 1, 0, 4, 1, 5, 6, 1, 0, 4, 1, 5, 7, 2, 8, 2, 9}, []string{"clustermanager", "v1", "web", "projects", "projectID", "scope", "scopeType", "scopeId", "host", "check"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_ClusterManager_CreateCloudModuleFlag_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4, 1, 0, 4, 1, 5, 5, 2, 6}, []string{"clustermanager", "v1", "clouds", "cloudID", "versions", "version", "modules"}, "", runtime.AssumeColonVerbOpt(true)))
 
