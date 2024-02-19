@@ -55535,6 +55535,8 @@ func (m *GetBatchCustomSettingRequest) validate(all bool) error {
 
 	// no validation rules for ScopeId
 
+	// no validation rules for ProjectID
+
 	if len(errors) > 0 {
 		return GetBatchCustomSettingRequestMultiError(errors)
 	}
@@ -55920,6 +55922,8 @@ func (m *GetBizTopologyHostRequest) validate(all bool) error {
 		}
 
 	}
+
+	// no validation rules for ProjectID
 
 	if len(errors) > 0 {
 		return GetBizTopologyHostRequestMultiError(errors)
@@ -56348,6 +56352,8 @@ func (m *GetTopologyNodesRequest) validate(all bool) error {
 	// no validation rules for Start
 
 	// no validation rules for PageSize
+
+	// no validation rules for ProjectID
 
 	if len(errors) > 0 {
 		return GetTopologyNodesRequestMultiError(errors)
@@ -57060,6 +57066,8 @@ func (m *GetTopologyHostIdsNodesRequest) validate(all bool) error {
 
 	// no validation rules for PageSize
 
+	// no validation rules for ProjectID
+
 	if len(errors) > 0 {
 		return GetTopologyHostIdsNodesRequestMultiError(errors)
 	}
@@ -57719,6 +57727,8 @@ func (m *GetHostsDetailsRequest) validate(all bool) error {
 
 	}
 
+	// no validation rules for ProjectID
+
 	if len(errors) > 0 {
 		return GetHostsDetailsRequestMultiError(errors)
 	}
@@ -58138,6 +58148,8 @@ func (m *GetScopeHostCheckRequest) validate(all bool) error {
 	// no validation rules for ScopeType
 
 	// no validation rules for ScopeId
+
+	// no validation rules for ProjectID
 
 	if len(errors) > 0 {
 		return GetScopeHostCheckRequestMultiError(errors)
