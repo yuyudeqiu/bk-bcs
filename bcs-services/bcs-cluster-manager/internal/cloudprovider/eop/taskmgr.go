@@ -59,6 +59,12 @@ type Task struct {
 	works map[string]interface{}
 }
 
+// BuildReimportClusterTask build reimport cluster task
+func (t *Task) BuildReimportClusterTask(cls *proto.Cluster, opt *cloudprovider.ReimportClusterOption) (
+	*proto.Task, error) {
+	return nil, cloudprovider.ErrCloudNotImplemented
+}
+
 // Name get cloudName
 func (t *Task) Name() string {
 	return cloudName
