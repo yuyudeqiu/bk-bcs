@@ -5,7 +5,7 @@ build:
 	go build -o $(BUILD_PATH)/gomicro-discovery-operator .
 
 container: build
-	docker build . -t gomicro-discovery-operator:latest
+	docker build . -t ${IMG}
 
 run: container
 	kubectl apply -f deploy.yaml
