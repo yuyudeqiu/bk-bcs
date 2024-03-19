@@ -40,12 +40,12 @@ import (
 var NoAuthEndpoints = []string{
 	"Healthz.Ping",
 	"Healthz.Healthz",
-	//"BCSProject.ListAuthorizedProjects",
-	//"BCSProject.ListProjects",
-	//"Business.ListBusiness",
+	"BCSProject.ListAuthorizedProjects",
+	"BCSProject.ListProjects",
+	"Business.ListBusiness",
 	//"Namespace.ListNamespaces",
 	"Namespace.WithdrawNamespace",
-	//"Namespace.SyncNamespace",
+	"Namespace.SyncNamespace",
 }
 
 // NoNeedCheckResourceIDEndpoints 不需要校验或转换 resourceID 的方法
@@ -221,6 +221,10 @@ func callIAM(username, action string, resourceID resourceID) (bool, string, []au
 			return false, "", nil, errorx.NewReadableErr(errorx.PermDeniedErr, "校验用户权限失败")
 		}
 		isSharedCluster = cluster.GetIsShared() && cluster.GetProjectID() != resourceID.ProjectID
+
+		if !cluster.GetIsShared() {
+			resourceID.ProjectID = cluster.ProjectID
+		}
 	}
 	switch action {
 	case project.CanViewProjectOperation:
