@@ -43,7 +43,7 @@ var NoAuthEndpoints = []string{
 	"BCSProject.ListAuthorizedProjects",
 	"BCSProject.ListProjects",
 	"Business.ListBusiness",
-	"Namespace.ListNamespaces",
+	// "Namespace.ListNamespaces",
 	"Namespace.WithdrawNamespace",
 	"Namespace.SyncNamespace",
 }
@@ -221,6 +221,10 @@ func callIAM(username, action string, resourceID resourceID) (bool, string, []au
 			return false, "", nil, errorx.NewReadableErr(errorx.PermDeniedErr, "校验用户权限失败")
 		}
 		isSharedCluster = cluster.GetIsShared() && cluster.GetProjectID() != resourceID.ProjectID
+
+		if !isSharedCluster {
+			resourceID.ProjectID = cluster.GetProjectID()
+		}
 	}
 	switch action {
 	case project.CanViewProjectOperation:
@@ -235,6 +239,7 @@ func callIAM(username, action string, resourceID resourceID) (bool, string, []au
 		return auth.NamespaceIamClient.CanViewNamespace(username,
 			resourceID.ProjectID, resourceID.ClusterID, resourceID.Namespace, isSharedCluster)
 	case namespace.CanListNamespaceOperation:
+
 		return auth.NamespaceIamClient.CanListNamespace(username,
 			resourceID.ProjectID, resourceID.ClusterID, isSharedCluster)
 	case namespace.CanCreateNamespaceOperation:
