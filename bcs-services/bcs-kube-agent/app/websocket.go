@@ -84,6 +84,7 @@ func buildWebsocketToBke(cfg *rest.Config) error {
 		"userToken": cfg.BearerToken,
 		"caCert":    base64.StdEncoding.EncodeToString(cfg.CAData),
 	}
+	blog.Infof("request value: %+v", params)
 	bytes, err := json.Marshal(params)
 	if err != nil {
 		return err
