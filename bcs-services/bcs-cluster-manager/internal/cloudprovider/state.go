@@ -170,11 +170,6 @@ func (stat *TaskState) IsReadyToStep(stepName string) (*proto.Step, error) {
 		return nil, fmt.Errorf("step %s don't turn to run, task already failed", stepName)
 	}
 
-	// refresh step status & task status
-	if curStep.Status == TaskStatusFailure {
-		curStep.Retry++
-	}
-
 	curStep.Start = time.Now().Format(time.RFC3339)
 	curStep.Status = TaskStatusRunning
 	curStep.Message = "step ready to run"

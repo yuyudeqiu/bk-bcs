@@ -114,6 +114,7 @@ func (ts *TaskServer) Dispatch(task *proto.Task) error {
 			Name: step.TaskMethod,
 			// two parameters: taskID, stepName
 			Args:                        []tasks.Arg{{Type: "string", Value: task.TaskID}, {Type: "string", Value: stepName}},
+			RetryCount:                  int(step.Retry),
 			IgnoreWhenTaskNotRegistered: true,
 		}
 		signatures = append(signatures, signature)
