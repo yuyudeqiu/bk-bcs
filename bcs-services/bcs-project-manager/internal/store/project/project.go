@@ -39,6 +39,10 @@ const (
 	FieldKeyProjectCode = "projectCode"
 	// FieldKeyKind kind
 	FieldKeyKind = "kind"
+	// FieldKeyTenantID tenantId
+	FieldKeyTenantID = "tenantId"
+	// FieldKeyTenantProjectCode tenantProjectCode
+	FieldKeyTenantProjectCode = "tenantProjectCode"
 )
 
 var (
@@ -71,35 +75,59 @@ var (
 			},
 			Unique: false,
 		},
+		{
+			Name: tableName + "_tenantId_idx",
+			Key: bson.D{
+				bson.E{Key: FieldKeyTenantID, Value: 1},
+			},
+			Unique: false,
+		},
+		{
+			Name: tableName + "_tenantProjectCode_idx",
+			Key: bson.D{
+				bson.E{Key: FieldKeyTenantProjectCode, Value: 1},
+			},
+			Unique: false,
+		},
+		{
+			Name: tableName + "_tenantId_tenantProjectCode_idx",
+			Key: bson.D{
+				bson.E{Key: FieldKeyTenantID, Value: 1},
+				bson.E{Key: FieldKeyTenantProjectCode, Value: 1},
+			},
+			Unique: true,
+		},
 	}
 )
 
 // Project xxx
 type Project struct {
-	CreateTime  string            `json:"createTime" bson:"createTime"`
-	UpdateTime  string            `json:"updateTime" bson:"updateTime"`
-	Creator     string            `json:"creator" bson:"creator"`
-	Updater     string            `json:"updater" bson:"updater"`
-	Managers    string            `json:"managers" bson:"managers"`
-	ProjectID   string            `json:"projectID" bson:"projectID"`
-	Name        string            `json:"name" bson:"name"`
-	ProjectCode string            `json:"projectCode" bson:"projectCode"`
-	UseBKRes    bool              `json:"useBKRes" bson:"useBKRes"`
-	Description string            `json:"description" bson:"description"`
-	IsOffline   bool              `json:"isOffline" bson:"isOffline"`
-	Kind        string            `json:"kind" bson:"kind"`
-	BusinessID  string            `json:"businessID" bson:"businessID"`
-	IsSecret    bool              `json:"isSecret" bson:"isSecret"`
-	ProjectType uint32            `json:"projectType" bson:"projectType"`
-	DeployType  uint32            `json:"deployType" bson:"deployType"`
-	BGID        string            `json:"bgID" bson:"bgID"`
-	BGName      string            `json:"bgName" bson:"bgName"`
-	DeptID      string            `json:"deptID" bson:"deptID"`
-	DeptName    string            `json:"deptName" bson:"deptName"`
-	CenterID    string            `json:"centerID" bson:"centerID"`
-	CenterName  string            `json:"centerName" bson:"centerName"`
-	Labels      map[string]string `json:"labels" bson:"labels"`
-	Annotations map[string]string `json:"annotations" bson:"annotations"`
+	CreateTime        string            `json:"createTime" bson:"createTime"`
+	UpdateTime        string            `json:"updateTime" bson:"updateTime"`
+	Creator           string            `json:"creator" bson:"creator"`
+	Updater           string            `json:"updater" bson:"updater"`
+	Managers          string            `json:"managers" bson:"managers"`
+	ProjectID         string            `json:"projectID" bson:"projectID"`
+	Name              string            `json:"name" bson:"name"`
+	TenantProjectCode string            `json:"tenantProjectCode" bson:"tenantProjectCode"`
+	TenantID          string            `json:"tenantID" bson:"tenantID"`
+	ProjectCode       string            `json:"projectCode" bson:"projectCode"`
+	UseBKRes          bool              `json:"useBKRes" bson:"useBKRes"`
+	Description       string            `json:"description" bson:"description"`
+	IsOffline         bool              `json:"isOffline" bson:"isOffline"`
+	Kind              string            `json:"kind" bson:"kind"`
+	BusinessID        string            `json:"businessID" bson:"businessID"`
+	IsSecret          bool              `json:"isSecret" bson:"isSecret"`
+	ProjectType       uint32            `json:"projectType" bson:"projectType"`
+	DeployType        uint32            `json:"deployType" bson:"deployType"`
+	BGID              string            `json:"bgID" bson:"bgID"`
+	BGName            string            `json:"bgName" bson:"bgName"`
+	DeptID            string            `json:"deptID" bson:"deptID"`
+	DeptName          string            `json:"deptName" bson:"deptName"`
+	CenterID          string            `json:"centerID" bson:"centerID"`
+	CenterName        string            `json:"centerName" bson:"centerName"`
+	Labels            map[string]string `json:"labels" bson:"labels"`
+	Annotations       map[string]string `json:"annotations" bson:"annotations"`
 }
 
 // ModelProject provide project db
@@ -168,12 +196,14 @@ func (m *ModelProject) GetProject(ctx context.Context, projectIDOrCode string) (
 	return retProject, nil
 }
 
-// ProjectField 项目属性, 包含项目ID、英文缩写、项目名称
+// ProjectField 项目属性, 包含项目ID、英文缩写、项目名称、租户信息等
 // nolint
 type ProjectField struct {
-	ProjectID   string
-	ProjectCode string
-	Name        string
+	ProjectID         string
+	ProjectCode       string
+	Name              string
+	TenantID          string
+	TenantProjectCode string
 }
 
 // GetProjectByField 通过项目的属性获取项目信息

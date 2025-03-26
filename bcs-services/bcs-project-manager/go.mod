@@ -2,6 +2,11 @@ module github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager
 
 go 1.21
 
+replace (
+	github.com/Tencent/bk-bcs/bcs-common => github.com/evanlixin/bk-bcs/bcs-common v0.0.0-20250327030802-d07d5ec0003a
+	github.com/Tencent/bk-bcs/bcs-services/pkg => github.com/evanlixin/bk-bcs/bcs-services/pkg v0.0.0-20250327030802-d07d5ec0003a
+)
+
 require (
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3

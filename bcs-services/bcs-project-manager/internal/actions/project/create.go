@@ -103,9 +103,11 @@ func (ca *CreateAction) createProject() error {
 		UpdateTime:  time.Now().Format(time.RFC3339),
 	}
 	// 从 context 中获取 username
+	// TODO 使用 user-manager 接口获取 用户当前所属的租户 & displayName & bk_username
 	if authUser, err := middleware.GetUserFromContext(ca.ctx); err == nil {
 		p.Creator = authUser.GetUsername()
 		p.Managers = authUser.GetUsername()
+		p.TenantID = authUser.GetTanantId()
 	}
 	return ca.model.CreateProject(ca.ctx, p)
 }
