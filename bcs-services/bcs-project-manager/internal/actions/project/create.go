@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bcscc"
@@ -109,6 +110,16 @@ func (ca *CreateAction) createProject() error {
 		p.Managers = authUser.GetUsername()
 		p.TenantID = authUser.GetTanantId()
 	}
+
+	// 单租户 使用 projectCode 且 projectCode = tenantProjectCode
+	// 多租户 使用tenantProjectCode 且后台转换至 projectCode
+	if config.GlobalConf.MultiTenantEnabled {
+		p.TenantProjectCode = p.ProjectCode
+		// TODO 系统生成，english_name=xxxx-$｛tenant_english_name｝ 前缀为租户 ID，分隔符为中划线（-）
+		//  这里可能需要一些 user-manager 提供的信息来拼接？
+		p.ProjectCode = fmt.Sprintf("%s-%s", p.TenantID, p.ProjectCode)
+	}
+
 	return ca.model.CreateProject(ca.ctx, p)
 }
 

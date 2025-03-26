@@ -90,6 +90,13 @@ func (la *ListAction) listProjects() ([]*pm.Project, int64, error) {
 		cond = operator.NewLeafCondition(operator.In, condM)
 	}
 
+	if config.GlobalConf.MultiTenantEnabled {
+		tenantID := auth.GetTenantFromCtx(la.ctx)
+		// 添加租户过滤条件
+		tenantCond := operator.NewLeafCondition(operator.Eq, operator.M{"tenantId": tenantID})
+		cond = operator.NewBranchCondition(operator.And, cond, tenantCond)
+	}
+
 	// 查询项目信息
 	projects, total, err := la.model.ListProjects(la.ctx, cond, &page.Pagination{
 		Limit: la.req.Limit, Offset: la.req.Offset, All: la.req.All,
@@ -124,6 +131,7 @@ func (lap *ListAuthorizedProject) Do(ctx context.Context,
 	authUser, err := middleware.GetUserFromContext(ctx)
 	if err == nil && authUser.Username != "" {
 		// username 为空时，该接口请求没有意义
+		// TODO 这里请求IAM，需要ID？
 		ids, any, err := auth.ListAuthorizedProjectIDs(authUser.Username)
 		if err != nil {
 			logging.Error("get user project permissions failed, err: %s", err.Error())
