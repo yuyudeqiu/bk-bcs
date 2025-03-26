@@ -27,9 +27,10 @@ import (
 )
 
 // ListAuthorizedProjectIDs 过滤有权限的项目 ID，如果为 any，则返回 true
-func ListAuthorizedProjectIDs(username string) ([]string, bool, error) {
+func ListAuthorizedProjectIDs(username string, tenantId string) ([]string, bool, error) {
+	// TODO iam 请求带上 tenantId
 	// 组装 iam request
-	iamReq := makeIAMRequest(username, ProjectView)
+	iamReq := makeIAMRequest(username, tenantId, ProjectView)
 	if err := iamReq.Validate(); err != nil {
 		return []string{}, false, err
 	}
@@ -57,7 +58,7 @@ func ListAuthorizedProjectIDs(username string) ([]string, bool, error) {
 }
 
 // makeIAMRequest 生成 iam request
-func makeIAMRequest(username, actionID string) iam.Request {
+func makeIAMRequest(username, tenantID, actionID string) iam.Request {
 	subject := iam.Subject{Type: "user", ID: username}
 	action := iam.Action{ID: actionID}
 	return iam.NewRequest(bcsIAM.SystemIDBKBCS, subject, action, nil)

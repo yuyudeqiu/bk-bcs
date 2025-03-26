@@ -208,6 +208,7 @@ type ProjectConfig struct {
 	RestrictAuthorizedProjects bool                         `yaml:"restrictAuthorizedProjects"`
 	TaskConfig                 TaskConfig                   `yaml:"taskConfig"`
 	SharedClusterConfig        SharedClusterConfig          `yaml:"sharedClusterConfig"`
+	MultiTenantEnabled         bool                         `yaml:"multiTenantEnabled"`
 }
 
 func (conf *ProjectConfig) initServerAddress() {

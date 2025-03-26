@@ -39,6 +39,10 @@ const (
 	FieldKeyProjectCode = "projectCode"
 	// FieldKeyKind kind
 	FieldKeyKind = "kind"
+	// FieldKeyTenantID tenantId
+	FieldKeyTenantID = "tenantId"
+	// FieldKeyTenantProjectCode tenantProjectCode
+	FieldKeyTenantProjectCode = "tenantProjectCode"
 )
 
 var (
@@ -71,35 +75,59 @@ var (
 			},
 			Unique: false,
 		},
+		{
+			Name: tableName + "_tenantId_idx",
+			Key: bson.D{
+				bson.E{Key: FieldKeyTenantID, Value: 1},
+			},
+			Unique: false,
+		},
+		{
+			Name: tableName + "_tenantProjectCode_idx",
+			Key: bson.D{
+				bson.E{Key: FieldKeyTenantProjectCode, Value: 1},
+			},
+			Unique: false,
+		},
+		{
+			Name: tableName + "_tenantId_tenantProjectCode_idx",
+			Key: bson.D{
+				bson.E{Key: FieldKeyTenantID, Value: 1},
+				bson.E{Key: FieldKeyTenantProjectCode, Value: 1},
+			},
+			Unique: true,
+		},
 	}
 )
 
 // Project xxx
 type Project struct {
-	CreateTime  string            `json:"createTime" bson:"createTime"`
-	UpdateTime  string            `json:"updateTime" bson:"updateTime"`
-	Creator     string            `json:"creator" bson:"creator"`
-	Updater     string            `json:"updater" bson:"updater"`
-	Managers    string            `json:"managers" bson:"managers"`
-	ProjectID   string            `json:"projectID" bson:"projectID"`
-	Name        string            `json:"name" bson:"name"`
-	ProjectCode string            `json:"projectCode" bson:"projectCode"`
-	UseBKRes    bool              `json:"useBKRes" bson:"useBKRes"`
-	Description string            `json:"description" bson:"description"`
-	IsOffline   bool              `json:"isOffline" bson:"isOffline"`
-	Kind        string            `json:"kind" bson:"kind"`
-	BusinessID  string            `json:"businessID" bson:"businessID"`
-	IsSecret    bool              `json:"isSecret" bson:"isSecret"`
-	ProjectType uint32            `json:"projectType" bson:"projectType"`
-	DeployType  uint32            `json:"deployType" bson:"deployType"`
-	BGID        string            `json:"bgID" bson:"bgID"`
-	BGName      string            `json:"bgName" bson:"bgName"`
-	DeptID      string            `json:"deptID" bson:"deptID"`
-	DeptName    string            `json:"deptName" bson:"deptName"`
-	CenterID    string            `json:"centerID" bson:"centerID"`
-	CenterName  string            `json:"centerName" bson:"centerName"`
-	Labels      map[string]string `json:"labels" bson:"labels"`
-	Annotations map[string]string `json:"annotations" bson:"annotations"`
+	CreateTime        string            `json:"createTime" bson:"createTime"`
+	UpdateTime        string            `json:"updateTime" bson:"updateTime"`
+	Creator           string            `json:"creator" bson:"creator"`
+	Updater           string            `json:"updater" bson:"updater"`
+	Managers          string            `json:"managers" bson:"managers"`
+	ProjectID         string            `json:"projectID" bson:"projectID"`
+	Name              string            `json:"name" bson:"name"`
+	TenantProjectCode string            `json:"tenantProjectCode" bson:"tenantProjectCode"`
+	TenantID          string            `json:"tenantID" bson:"tenantID"`
+	ProjectCode       string            `json:"projectCode" bson:"projectCode"`
+	UseBKRes          bool              `json:"useBKRes" bson:"useBKRes"`
+	Description       string            `json:"description" bson:"description"`
+	IsOffline         bool              `json:"isOffline" bson:"isOffline"`
+	Kind              string            `json:"kind" bson:"kind"`
+	BusinessID        string            `json:"businessID" bson:"businessID"`
+	IsSecret          bool              `json:"isSecret" bson:"isSecret"`
+	ProjectType       uint32            `json:"projectType" bson:"projectType"`
+	DeployType        uint32            `json:"deployType" bson:"deployType"`
+	BGID              string            `json:"bgID" bson:"bgID"`
+	BGName            string            `json:"bgName" bson:"bgName"`
+	DeptID            string            `json:"deptID" bson:"deptID"`
+	DeptName          string            `json:"deptName" bson:"deptName"`
+	CenterID          string            `json:"centerID" bson:"centerID"`
+	CenterName        string            `json:"centerName" bson:"centerName"`
+	Labels            map[string]string `json:"labels" bson:"labels"`
+	Annotations       map[string]string `json:"annotations" bson:"annotations"`
 }
 
 // ModelProject provide project db
@@ -168,12 +196,14 @@ func (m *ModelProject) GetProject(ctx context.Context, projectIDOrCode string) (
 	return retProject, nil
 }
 
-// ProjectField 项目属性, 包含项目ID、英文缩写、项目名称
+// ProjectField 项目属性, 包含项目ID、英文缩写、项目名称、租户信息等
 // nolint
 type ProjectField struct {
-	ProjectID   string
-	ProjectCode string
-	Name        string
+	ProjectID         string
+	ProjectCode       string
+	Name              string
+	TenantID          string
+	TenantProjectCode string
 }
 
 // GetProjectByField 通过项目的属性获取项目信息
@@ -186,6 +216,52 @@ func (m *ModelProject) GetProjectByField(ctx context.Context, pf *ProjectField) 
 	nameCond := operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyName: pf.Name})
 	cond := operator.NewBranchCondition(operator.Or, projectIDCond, projectCodeCond, nameCond)
 
+	retProject := &Project{}
+	if err := m.db.Table(m.tableName).Find(cond).One(ctx, retProject); err != nil {
+		return nil, err
+	}
+	return retProject, nil
+}
+
+// GetTenantProjectByField 通过项目的属性获取项目信息（多租户）
+func (m *ModelProject) GetTenantProjectByField(ctx context.Context, pf *ProjectField) (*Project, error) {
+	// TenantID 是必需参数
+	if pf.TenantID == "" {
+		return nil, fmt.Errorf("tenantID must be provided in multi-tenant mode")
+	}
+
+	// 创建基础条件：限定在指定租户内
+	tenantIDCond := operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyTenantID: pf.TenantID})
+
+	// 创建子查询条件
+	var subConditions []*operator.Condition
+
+	// 添加 Name 条件（如果有）
+	if pf.Name != "" {
+		subConditions = append(subConditions, operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyName: pf.Name}))
+	}
+
+	// 添加 TenantProjectCode 条件（如果有）
+	if pf.TenantProjectCode != "" {
+		subConditions = append(subConditions, operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyTenantProjectCode: pf.TenantProjectCode}))
+	}
+
+	// 创建最终查询条件
+	var cond *operator.Condition
+
+	if len(subConditions) == 0 {
+		// 如果没有其他查询条件，则只查询租户
+		cond = tenantIDCond
+	} else if len(subConditions) == 1 {
+		// 如果只有一个子条件，直接组合
+		cond = operator.NewBranchCondition(operator.And, tenantIDCond, subConditions[0])
+	} else {
+		// 如果有多个子条件，使用 OR 组合后再与 TenantID 组合
+		orCond := operator.NewBranchCondition(operator.Or, subConditions...)
+		cond = operator.NewBranchCondition(operator.And, tenantIDCond, orCond)
+	}
+
+	// 执行查询
 	retProject := &Project{}
 	if err := m.db.Table(m.tableName).Find(cond).One(ctx, retProject); err != nil {
 		return nil, err

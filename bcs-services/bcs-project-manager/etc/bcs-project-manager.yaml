@@ -95,3 +95,4 @@ taskConfig:
   workerCnt: ""
 sharedClusterConfig:
   annoKeyProjCode: ""
+multiTenantEnabled: false

@@ -16,6 +16,7 @@ import (
 	"context"
 
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
+	authutils "github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/utils"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/project"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
@@ -127,12 +128,12 @@ func (p *ProjectHandler) ListProjects(ctx context.Context,
 		return e
 	}
 	authUser, err := middleware.GetUserFromContext(ctx)
-	if err == nil && authUser.Username != "" {
+	if err == nil && authUser.GetUsername() != "" {
 		// with username
 		// 获取 project id, 用以获取对应的权限
 		ids := getProjectIDs(projects)
 		perms, err := auth.ProjectIamClient.GetMultiProjectMultiActionPerm(
-			authUser.Username, ids,
+			authutils.UserInfo{BkUserName: authUser.GetUsername(), TenantId: authUser.GetTanantId()}, ids,
 			[]string{auth.ProjectCreate, auth.ProjectView, auth.ProjectEdit, auth.ProjectDelete},
 		)
 		if err != nil {
@@ -161,7 +162,8 @@ func (p *ProjectHandler) ListAuthorizedProjects(ctx context.Context,
 		if err == nil && authUser.Username != "" {
 			ids := getProjectIDs(projects)
 			perms, err := auth.ProjectIamClient.GetMultiProjectMultiActionPerm(
-				authUser.Username, ids,
+				authutils.UserInfo{BkUserName: authUser.GetUsername(), TenantId: authUser.GetTanantId()},
+				ids,
 				[]string{auth.ProjectCreate, auth.ProjectView, auth.ProjectEdit, auth.ProjectDelete},
 			)
 			if err != nil {

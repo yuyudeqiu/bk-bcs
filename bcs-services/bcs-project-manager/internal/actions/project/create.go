@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bcscc"
@@ -27,6 +28,7 @@ import (
 	pm "github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store/project"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/stringx"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	proto "github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/proto/bcsproject"
 )
 
@@ -106,7 +108,18 @@ func (ca *CreateAction) createProject() error {
 	if authUser, err := middleware.GetUserFromContext(ca.ctx); err == nil {
 		p.Creator = authUser.GetUsername()
 		p.Managers = authUser.GetUsername()
+		p.TenantID = authUser.GetTanantId() // 单租户模式下该字段为 default
 	}
+
+	// TODO 使用 user-manager 接口获取 用户当前所属的租户 & displayName & bk_username
+	// 单租户 使用 projectCode 且 projectCode = tenantProjectCode，保持原 p.Project = ca.req.Project 即可
+	// 多租户 使用 tenantProjectCode 且后台转换至 projectCode。
+	// projectCode 全局唯一，所以需要拼接 租户信息+租户视角下的 tenantProjectCode，并且将拼接后的结果写到 ProjectCode
+	if tenant.IsMultiTenantEnabled() {
+		p.TenantProjectCode = p.ProjectCode
+		p.ProjectCode = ca.generateProjectCode(p.TenantID, p.TenantProjectCode)
+	}
+
 	return ca.model.CreateProject(ca.ctx, p)
 }
 
@@ -116,7 +129,29 @@ func (ca *CreateAction) validate() error {
 	if len(strings.TrimSpace(name)) == 0 {
 		return fmt.Errorf("name cannot contains only spaces")
 	}
-	if p, _ := ca.model.GetProjectByField(ca.ctx, &pm.ProjectField{ProjectID: projectID, ProjectCode: projectCode,
+	// 先检查全局唯一的 ProjectID是否已经被使用了
+	p, err := ca.model.GetProject(ca.ctx, projectID)
+	if err != nil {
+		return err
+	}
+	if p != nil {
+		return fmt.Errorf("projectID: %s is already exists", projectID)
+	}
+
+	if tenant.IsMultiTenantEnabled() {
+		// 多租户 TenantID+TenantProjectCode 全局唯一，其他条件均为 Or
+		p, _ = ca.model.GetTenantProjectByField(ca.ctx, &pm.ProjectField{TenantID: auth.GetTenantIdFromCtx(ca.ctx),
+			TenantProjectCode: projectCode, Name: name})
+		if p.TenantProjectCode == projectCode {
+			return fmt.Errorf("projectCode: %s is already exists", projectCode)
+		}
+		if p.Name == name {
+			return fmt.Errorf("name: %s is already exists", name)
+		}
+		return nil
+	}
+	// 单租户情况保持原查询方式
+	if p, _ = ca.model.GetProjectByField(ca.ctx, &pm.ProjectField{ProjectID: projectID, ProjectCode: projectCode,
 		Name: name}); p != nil {
 		if p.ProjectID == projectID {
 			return fmt.Errorf("projectID: %s is already exists", projectID)
@@ -129,4 +164,10 @@ func (ca *CreateAction) validate() error {
 		}
 	}
 	return nil
+}
+
+func (ca *CreateAction) generateProjectCode(tenantID, tenantProjectCode string) string {
+	// TODO 系统生成，english_name=xxxx-$｛tenant_english_name｝ 前缀为租户 ID，分隔符为中划线（-）
+	//  这里可能需要一些 user-manager 提供的信息来拼接？
+	return fmt.Sprintf("%s-%s", tenantID, tenantProjectCode)
 }

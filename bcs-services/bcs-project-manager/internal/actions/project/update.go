@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bcscc"
@@ -66,6 +68,7 @@ func (ua *UpdateAction) Do(ctx context.Context, req *proto.UpdateProjectRequest)
 	if req.GetBusinessID() != "" && (oldProject.BusinessID == "" || oldProject.BusinessID == "0") {
 		// 开启容器服务
 		// 1. 在监控创建对应的容器项目空间
+		// TODO 监控需要确定是否需要传递租户信息？？
 		if err := bkmonitor.CreateSpace(p); err != nil {
 			logging.Error("[ALARM-BK-MONITOR] create space for %s/%s in bkmonitor failed, err: %s",
 				p.ProjectID, p.ProjectCode, err.Error())
@@ -101,6 +104,17 @@ func (ua *UpdateAction) validate() error {
 	if len(strings.TrimSpace(name)) == 0 {
 		return fmt.Errorf("name cannot contains only spaces")
 	}
+	if tenant.IsMultiTenantEnabled() {
+		if p, _ := ua.model.GetTenantProjectByField(ua.ctx, &pm.ProjectField{TenantID: auth.GetTenantIdFromCtx(ua.ctx),
+			Name: name}); p != nil {
+			if p.ProjectID == ua.req.ProjectID {
+				// 如果是同一个项目，忽略名称校验
+				return nil
+			}
+			return fmt.Errorf("name: %s is already exists", name)
+		}
+		return nil
+	}
 	// check name unique
 	if p, _ := ua.model.GetProjectByField(ua.ctx, &pm.ProjectField{Name: name}); p != nil {
 		// 如果是同一个项目，忽略名称校验
@@ -133,6 +147,7 @@ func (ua *UpdateAction) updateProject(p *pm.Project) error {
 	if req.Name != "" {
 		p.Name = req.Name
 	}
+	// TODO 业务id需判断是否跨租户
 	if req.BusinessID != "" {
 		p.BusinessID = req.BusinessID
 	}

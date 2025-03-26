@@ -89,7 +89,7 @@ func CreateTicket(username string, serviceID int, fields []map[string]interface{
 
 // SubmitCreateNamespaceTicket create new itsm create namespace ticket
 func SubmitCreateNamespaceTicket(username, projectCode, clusterID, namespace string,
-	cpuLimits, memoryLimits int) (*CreateTicketData, error) {
+	tenantId string, cpuLimits, memoryLimits int) (*CreateTicketData, error) {
 	var serviceID int
 	itsmConf := config.GlobalConf.ITSM
 	if itsmConf.AutoRegister {

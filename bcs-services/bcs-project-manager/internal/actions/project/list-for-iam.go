@@ -16,6 +16,8 @@ import (
 	"context"
 
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/odm/operator"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/page"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bkmonitor"
@@ -50,6 +52,7 @@ func (la *ListForIAMAction) Do(ctx context.Context, req *proto.ListProjectsForIA
 	if err != nil {
 		return nil, errorx.NewDBErr(err.Error())
 	}
+	// TODO 请求监控时是否需要带上 TenantID ?
 	spaces, err := bkmonitor.ListSpaces()
 	if err != nil {
 		return nil, err
@@ -86,6 +89,10 @@ func (la *ListForIAMAction) listProjects() ([]*pm.Project, int64, error) {
 	cond := operator.NewLeafCondition(operator.Eq, operator.M{
 		"kind": "k8s",
 	})
+	if tenant.IsMultiTenantEnabled() {
+		tenantCond := operator.NewLeafCondition(operator.Eq, operator.M{"tenantId": auth.GetTenantIdFromCtx(la.ctx)})
+		cond = operator.NewBranchCondition(operator.And, cond, tenantCond)
+	}
 	// 查询所有开启了容器服务的项目
 	projects, total, err := la.model.ListProjects(la.ctx, cond, &page.Pagination{All: true})
 	if err != nil {

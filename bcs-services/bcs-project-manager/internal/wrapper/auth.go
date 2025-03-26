@@ -22,6 +22,7 @@ import (
 	middleauth "github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/namespace"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/project"
+	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/utils"
 	authutils "github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/utils"
 	"go-micro.dev/v4/metadata"
 	"go-micro.dev/v4/server"
@@ -169,10 +170,11 @@ func (r *resourceID) check() error {
 }
 
 // CheckUserPerm implementation for CheckUserPerm interface
-func CheckUserPerm(ctx context.Context, req server.Request, username string) (bool, error) {
-	logging.Info("CheckUserPerm: method/%s, username: %s", req.Method(), username)
+func CheckUserPerm(ctx context.Context, req server.Request, user utils.UserInfo) (bool, error) {
+	logging.Info("CheckUserPerm: method/%s, username: %s, tenantId: %s",
+		req.Method(), user.GetBKUserName(), user.GetTenantId())
 
-	if len(username) == 0 {
+	if len(user.GetBKUserName()) == 0 {
 		return false, errorx.NewReadableErr(errorx.PermDeniedErr, "用户名为空")
 	}
 	body := req.Body()
@@ -197,7 +199,7 @@ func CheckUserPerm(ctx context.Context, req server.Request, username string) (bo
 		return false, errorx.NewReadableErr(errorx.PermDeniedErr, "校验用户权限失败, 该操作不支持用户态权限")
 	}
 
-	allow, url, resources, err := callIAM(username, action, *resourceID)
+	allow, url, resources, err := callIAM(user, action, *resourceID)
 	if err != nil {
 		return false, errorx.NewReadableErr(errorx.PermDeniedErr, "校验用户权限失败")
 	}
@@ -212,7 +214,7 @@ func CheckUserPerm(ctx context.Context, req server.Request, username string) (bo
 	return allow, nil
 }
 
-func callIAM(username, action string, resourceID resourceID) (bool, string, []authutils.ResourceAction, error) {
+func callIAM(user utils.UserInfo, action string, resourceID resourceID) (bool, string, []authutils.ResourceAction, error) {
 	var isSharedCluster bool
 	if resourceID.ClusterID != "" {
 		cluster, err := clustermanager.GetCluster(resourceID.ClusterID)
@@ -222,29 +224,30 @@ func callIAM(username, action string, resourceID resourceID) (bool, string, []au
 		}
 		isSharedCluster = cluster.GetIsShared() && cluster.GetProjectID() != resourceID.ProjectID
 	}
+
 	switch action {
 	case project.CanViewProjectOperation:
-		return auth.ProjectIamClient.CanViewProject(username, resourceID.ProjectID)
+		return auth.ProjectIamClient.CanViewProject(user, resourceID.ProjectID)
 	case project.CanCreateProjectOperation:
-		return auth.ProjectIamClient.CanCreateProject(username)
+		return auth.ProjectIamClient.CanCreateProject(user)
 	case project.CanEditProjectOperation:
-		return auth.ProjectIamClient.CanEditProject(username, resourceID.ProjectID)
+		return auth.ProjectIamClient.CanEditProject(user, resourceID.ProjectID)
 	case project.CanDeleteProjectOperation:
-		return auth.ProjectIamClient.CanDeleteProject(username, resourceID.ProjectID)
+		return auth.ProjectIamClient.CanDeleteProject(user, resourceID.ProjectID)
 	case namespace.CanViewNamespaceOperation:
-		return auth.NamespaceIamClient.CanViewNamespace(username,
+		return auth.NamespaceIamClient.CanViewNamespace(user,
 			resourceID.ProjectID, resourceID.ClusterID, resourceID.Namespace, isSharedCluster)
 	case namespace.CanListNamespaceOperation:
-		return auth.NamespaceIamClient.CanListNamespace(username,
+		return auth.NamespaceIamClient.CanListNamespace(user,
 			resourceID.ProjectID, resourceID.ClusterID, isSharedCluster)
 	case namespace.CanCreateNamespaceOperation:
-		return auth.NamespaceIamClient.CanCreateNamespace(username,
+		return auth.NamespaceIamClient.CanCreateNamespace(user,
 			resourceID.ProjectID, resourceID.ClusterID, isSharedCluster)
 	case namespace.CanUpdateNamespaceOperation:
-		return auth.NamespaceIamClient.CanUpdateNamespace(username,
+		return auth.NamespaceIamClient.CanUpdateNamespace(user,
 			resourceID.ProjectID, resourceID.ClusterID, resourceID.Namespace, isSharedCluster)
 	case namespace.CanDeleteNamespaceOperation:
-		return auth.NamespaceIamClient.CanDeleteNamespace(username,
+		return auth.NamespaceIamClient.CanDeleteNamespace(user,
 			resourceID.ProjectID, resourceID.ClusterID, resourceID.Namespace, isSharedCluster)
 	default:
 		return false, "", nil, errorx.NewReadableErr(errorx.PermDeniedErr, "校验用户权限失败")

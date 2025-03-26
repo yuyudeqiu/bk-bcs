@@ -345,6 +345,7 @@ func (p *ProjectService) initMicro() error {
 			wrapper.NewResponseWrapper,
 			wrapper.NewLogWrapper,
 			wrapper.NewValidatorWrapper,
+			wrapper.CheckUserResourceTenantAttrFunc,
 			wrapper.NewAuthHeaderAdapter,
 			authWrapper.AuthenticationFunc,
 			wrapper.NewAuthLogWrapper,

@@ -141,7 +141,7 @@ func (p *NamespaceHandler) ListNamespaces(ctx context.Context,
 	}
 	retData := sortNamespaces(resp.GetData())
 	authUser, err := middleware.GetUserFromContext(ctx)
-	if err == nil && authUser.Username != "" {
+	if err == nil && authUser.GetUsername() != "" {
 		p, err := p.model.GetProject(ctx, req.GetProjectCode())
 		if err != nil {
 			logging.Error("get project %s failed, err: %s", req.GetProjectCode(), err.Error())
@@ -157,7 +157,8 @@ func (p *NamespaceHandler) ListNamespaces(ctx context.Context,
 			})
 		}
 		perms, err := auth.NamespaceIamClient.GetMultiNamespaceMultiActionPerm(
-			authUser.Username, namespaces,
+			authutils.UserInfo{BkUserName: authUser.GetUsername(), TenantId: authUser.GetTanantId()},
+			namespaces,
 			[]string{auth.NamespaceCreate, auth.NamespaceView,
 				auth.NamespaceUpdate, auth.NamespaceDelete,
 				auth.NamespaceScopedCreate, auth.NamespaceScopedView,
