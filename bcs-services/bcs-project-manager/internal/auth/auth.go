@@ -82,3 +82,9 @@ func GetUserFromCtx(ctx context.Context) string {
 	authUser, _ := middleauth.GetUserFromContext(ctx)
 	return authUser.GetUsername()
 }
+
+// GetTenantFromCtx 通过 ctx 获取当前租户
+func GetTenantFromCtx(ctx context.Context) string {
+	authUser, _ := middleauth.GetUserFromContext(ctx)
+	return authUser.GetTanantId()
+}
