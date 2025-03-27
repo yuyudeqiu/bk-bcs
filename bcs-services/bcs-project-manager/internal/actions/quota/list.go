@@ -18,8 +18,10 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/odm/operator"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/page"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/clustermanager"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store/project"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store/quota"
@@ -52,6 +54,11 @@ func (la *ListQuotaAction) doHost(req *proto.ListProjectQuotasRequest,
 
 	if p == nil {
 		return pquota, errorx.NewReadableErr(errorx.ParamErr, "project not found")
+	}
+
+	// 检查项目是否属于当前租户
+	if config.GlobalConf.MultiTenantEnabled && p.TenantID != auth.GetTenantFromCtx(la.ctx) {
+		return pquota, errorx.NewReadableErr(errorx.ParamErr, "can't not access other tenant's project")
 	}
 
 	if _, ok := p.Labels["quota-gray"]; ok {
