@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bcscc"
@@ -60,6 +60,9 @@ func (ua *UpdateAction) Do(ctx context.Context, req *proto.UpdateProjectRequest)
 	if err != nil {
 		logging.Error("project: %s not found", req.ProjectID)
 		return nil, errorx.NewParamErr(err.Error())
+	}
+	if err = tenant.VerifyProject(ctx, p); err != nil {
+		return nil, err
 	}
 	oldProject := *p
 	if err := ua.updateProject(p); err != nil {
@@ -103,7 +106,7 @@ func (ua *UpdateAction) validate() error {
 	if len(strings.TrimSpace(name)) == 0 {
 		return fmt.Errorf("name cannot contains only spaces")
 	}
-	if config.GlobalConf.MultiTenantEnabled {
+	if tenant.IsMultiTenantEnabled() {
 		if p, _ := ua.model.GetTenantProjectByField(ua.ctx, &pm.ProjectField{TenantID: auth.GetTenantFromCtx(ua.ctx),
 			Name: name}); p != nil {
 			if p.ProjectID == ua.req.ProjectID {

@@ -15,11 +15,10 @@ package business
 import (
 	"context"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/cmdb"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	proto "github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/proto/bcsproject"
 )
 
@@ -50,8 +49,8 @@ func (ga *GetTopologyAction) Do(ctx context.Context,
 		return errorx.NewDBErr(err.Error())
 	}
 
-	if config.GlobalConf.MultiTenantEnabled && p.TenantID != auth.GetTenantFromCtx(ctx) {
-		return errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project is not belong to current tenant")
+	if err = tenant.VerifyProject(ctx, p); err != nil {
+		return err
 	}
 
 	if p.BusinessID == "" || p.BusinessID == "0" {

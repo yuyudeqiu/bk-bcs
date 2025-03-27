@@ -16,6 +16,7 @@ import (
 	"context"
 
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/odm/operator"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -90,10 +91,8 @@ func (la *ListAction) listProjects() ([]*pm.Project, int64, error) {
 		cond = operator.NewLeafCondition(operator.In, condM)
 	}
 
-	if config.GlobalConf.MultiTenantEnabled {
-		tenantID := auth.GetTenantFromCtx(la.ctx)
-		// 添加租户过滤条件
-		tenantCond := operator.NewLeafCondition(operator.Eq, operator.M{"tenantId": tenantID})
+	if tenant.IsMultiTenantEnabled() {
+		tenantCond := operator.NewLeafCondition(operator.Eq, operator.M{"tenantId": auth.GetTenantFromCtx(la.ctx)})
 		cond = operator.NewBranchCondition(operator.And, cond, tenantCond)
 	}
 

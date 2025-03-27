@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bcscc"
@@ -29,6 +28,7 @@ import (
 	pm "github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store/project"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/stringx"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	proto "github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/proto/bcsproject"
 )
 
@@ -114,7 +114,7 @@ func (ca *CreateAction) createProject() error {
 
 	// 单租户 使用 projectCode 且 projectCode = tenantProjectCode
 	// 多租户 使用tenantProjectCode 且后台转换至 projectCode
-	if config.GlobalConf.MultiTenantEnabled {
+	if tenant.IsMultiTenantEnabled() {
 		p.TenantProjectCode = p.ProjectCode
 		// TODO 系统生成，english_name=xxxx-$｛tenant_english_name｝ 前缀为租户 ID，分隔符为中划线（-）
 		//  这里可能需要一些 user-manager 提供的信息来拼接？
@@ -139,7 +139,7 @@ func (ca *CreateAction) validate() error {
 		return fmt.Errorf("projectID: %s is already exists", projectID)
 	}
 
-	if config.GlobalConf.MultiTenantEnabled {
+	if tenant.IsMultiTenantEnabled() {
 		// 多租户 TenantID+TenantProjectCode 全局唯一，其他条件均为 Or
 		p, _ = ca.model.GetTenantProjectByField(ca.ctx, &pm.ProjectField{TenantID: auth.GetTenantFromCtx(ca.ctx),
 			TenantProjectCode: projectCode, Name: name})

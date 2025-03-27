@@ -19,12 +19,11 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/namespace/action"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/namespace/independent"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/namespace/shared"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/clustermanager"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/logging"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 )
 
 // NamespaceFactory namespace faction factory
@@ -59,11 +58,11 @@ func (f *NamespaceFactory) Action(ctx context.Context, clusterID, projectIDOrCod
 		logging.Error("get project from db failed, err: %s", err.Error())
 		return nil, err
 	}
-	tenantId := auth.GetTenantFromCtx(ctx)
-	if config.GlobalConf.MultiTenantEnabled && project.TenantID != tenantId {
-		logging.Warn("get project from other tenant, tenantId: %s, projectTenantId: %s", tenantId, project.TenantID)
-		return nil, errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project not belong to current tenant")
+
+	if err = tenant.VerifyProject(ctx, project); err != nil {
+		return nil, err
 	}
+
 	if cluster.GetProjectID() != project.ProjectID {
 		if cluster.GetIsShared() {
 			return shared.NewSharedNamespaceAction(f.model), nil

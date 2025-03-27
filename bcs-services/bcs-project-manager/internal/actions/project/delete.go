@@ -15,10 +15,9 @@ package project
 import (
 	"context"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	proto "github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/proto/bcsproject"
 )
 
@@ -46,10 +45,9 @@ func (da *DeleteAction) Do(ctx context.Context, req *proto.DeleteProjectRequest)
 	if err != nil {
 		return errorx.NewDBErr(err.Error())
 	}
-	// 未找到，或者项目属于别的租户，都不能删除
-	// TODO 通过一个数据库操作完成，不用先查
-	if project == nil || (config.GlobalConf.MultiTenantEnabled && project.TenantID != auth.GetTenantFromCtx(ctx)) {
-		return errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project not found")
+
+	if err = tenant.VerifyProject(ctx, project); err != nil {
+		return err
 	}
 
 	if err := da.model.DeleteProject(ctx, req.ProjectID); err != nil {
