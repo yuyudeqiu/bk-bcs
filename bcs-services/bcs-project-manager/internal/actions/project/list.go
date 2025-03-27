@@ -130,7 +130,7 @@ func (lap *ListAuthorizedProject) Do(ctx context.Context,
 	authUser, err := middleware.GetUserFromContext(ctx)
 	if err == nil && authUser.Username != "" {
 		// username 为空时，该接口请求没有意义
-		// TODO 这里请求IAM，需要ID？
+		// TODO 请求 IAM 过滤有权限的项目时，是否需要带上 TenantID ???
 		ids, any, err := auth.ListAuthorizedProjectIDs(authUser.Username)
 		if err != nil {
 			logging.Error("get user project permissions failed, err: %s", err.Error())

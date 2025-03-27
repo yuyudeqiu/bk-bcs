@@ -105,20 +105,19 @@ func (ca *CreateAction) createProject() error {
 		UpdateTime:  time.Now().Format(time.RFC3339),
 	}
 	// 从 context 中获取 username
-	// TODO 使用 user-manager 接口获取 用户当前所属的租户 & displayName & bk_username
 	if authUser, err := middleware.GetUserFromContext(ca.ctx); err == nil {
 		p.Creator = authUser.GetUsername()
 		p.Managers = authUser.GetUsername()
 		p.TenantID = authUser.GetTanantId()
 	}
 
-	// 单租户 使用 projectCode 且 projectCode = tenantProjectCode
-	// 多租户 使用tenantProjectCode 且后台转换至 projectCode
+	// TODO 使用 user-manager 接口获取 用户当前所属的租户 & displayName & bk_username
+	// 单租户 使用 projectCode 且 projectCode = tenantProjectCode，保持原 p.Project = ca.req.Project 即可
+	// 多租户 使用 tenantProjectCode 且后台转换至 projectCode。
+	// projectCode 全局唯一，所以需要拼接 租户信息+租户视角下的 tenantProjectCode，并且将拼接后的结果写到 ProjectCode
 	if tenant.IsMultiTenantEnabled() {
 		p.TenantProjectCode = p.ProjectCode
-		// TODO 系统生成，english_name=xxxx-$｛tenant_english_name｝ 前缀为租户 ID，分隔符为中划线（-）
-		//  这里可能需要一些 user-manager 提供的信息来拼接？
-		p.ProjectCode = fmt.Sprintf("%s-%s", p.TenantID, p.ProjectCode)
+		p.ProjectCode = ca.generateProjectCode(p.TenantID, p.TenantProjectCode)
 	}
 
 	return ca.model.CreateProject(ca.ctx, p)
@@ -165,4 +164,10 @@ func (ca *CreateAction) validate() error {
 		}
 	}
 	return nil
+}
+
+func (ca *CreateAction) generateProjectCode(tenantID, tenantProjectCode string) string {
+	// TODO 系统生成，english_name=xxxx-$｛tenant_english_name｝ 前缀为租户 ID，分隔符为中划线（-）
+	//  这里可能需要一些 user-manager 提供的信息来拼接？
+	return fmt.Sprintf("%s-%s", tenantID, tenantProjectCode)
 }

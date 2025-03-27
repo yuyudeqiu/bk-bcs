@@ -50,6 +50,7 @@ func (da *DeleteAction) Do(ctx context.Context, req *proto.DeleteProjectRequest)
 		return err
 	}
 
+	// TODO 数据库层面直接支持，不用查了再删
 	if err := da.model.DeleteProject(ctx, req.ProjectID); err != nil {
 		return errorx.NewDBErr(err.Error())
 	}

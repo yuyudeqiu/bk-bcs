@@ -68,6 +68,10 @@ func (ga *GetAction) Active(ctx context.Context, req *proto.GetProjectActiveRequ
 		return false, errorx.NewDBErr(err.Error())
 	}
 
+	if err = tenant.VerifyProject(ctx, p); err != nil {
+		return false, err
+	}
+
 	// 未开启容器服务，直接返回不活跃
 	if p.Kind == "" {
 		return false, nil

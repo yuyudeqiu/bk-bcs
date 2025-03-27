@@ -71,6 +71,7 @@ func (ua *UpdateAction) Do(ctx context.Context, req *proto.UpdateProjectRequest)
 	if req.GetBusinessID() != "" && (oldProject.BusinessID == "" || oldProject.BusinessID == "0") {
 		// 开启容器服务
 		// 1. 在监控创建对应的容器项目空间
+		// TODO 监控需要确定是否需要传递租户信息
 		if err := bkmonitor.CreateSpace(p); err != nil {
 			logging.Error("[ALARM-BK-MONITOR] create space for %s/%s in bkmonitor failed, err: %s",
 				p.ProjectID, p.ProjectCode, err.Error())
