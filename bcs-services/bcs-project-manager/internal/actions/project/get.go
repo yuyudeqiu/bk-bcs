@@ -15,6 +15,8 @@ package project
 import (
 	"context"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/clientset"
@@ -49,6 +51,13 @@ func (ga *GetAction) Do(ctx context.Context, req *proto.GetProjectRequest) (*pm.
 	p, err := ga.model.GetProject(ctx, req.ProjectIDOrCode)
 	if err != nil {
 		return nil, errorx.NewDBErr(err.Error())
+	}
+	// 拿到之后在做判断，如果不属于当前租户，返回NotFound
+	if config.GlobalConf.MultiTenantEnabled {
+		tenantID := auth.GetTenantFromCtx(ctx)
+		if p.TenantID != tenantID {
+			return nil, errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project not found")
+		}
 	}
 
 	return p, nil
