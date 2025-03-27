@@ -223,6 +223,52 @@ func (m *ModelProject) GetProjectByField(ctx context.Context, pf *ProjectField) 
 	return retProject, nil
 }
 
+// GetTenantProjectByField 通过项目的属性获取项目信息（多租户）
+func (m *ModelProject) GetTenantProjectByField(ctx context.Context, pf *ProjectField) (*Project, error) {
+	// TenantID 是必需参数
+	if pf.TenantID == "" {
+		return nil, fmt.Errorf("tenantID must be provided in multi-tenant mode")
+	}
+
+	// 创建基础条件：限定在指定租户内
+	tenantIDCond := operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyTenantID: pf.TenantID})
+
+	// 创建子查询条件
+	var subConditions []*operator.Condition
+
+	// 添加 Name 条件（如果有）
+	if pf.Name != "" {
+		subConditions = append(subConditions, operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyName: pf.Name}))
+	}
+
+	// 添加 TenantProjectCode 条件（如果有）
+	if pf.TenantProjectCode != "" {
+		subConditions = append(subConditions, operator.NewLeafCondition(operator.Eq, operator.M{FieldKeyTenantProjectCode: pf.TenantProjectCode}))
+	}
+
+	// 创建最终查询条件
+	var cond *operator.Condition
+
+	if len(subConditions) == 0 {
+		// 如果没有其他查询条件，则只查询租户
+		cond = tenantIDCond
+	} else if len(subConditions) == 1 {
+		// 如果只有一个子条件，直接组合
+		cond = operator.NewBranchCondition(operator.And, tenantIDCond, subConditions[0])
+	} else {
+		// 如果有多个子条件，使用 OR 组合后再与 TenantID 组合
+		orCond := operator.NewBranchCondition(operator.Or, subConditions...)
+		cond = operator.NewBranchCondition(operator.And, tenantIDCond, orCond)
+	}
+
+	// 执行查询
+	retProject := &Project{}
+	if err := m.db.Table(m.tableName).Find(cond).One(ctx, retProject); err != nil {
+		return nil, err
+	}
+	return retProject, nil
+}
+
 // UpdateProject update project info
 func (m *ModelProject) UpdateProject(ctx context.Context, project *Project) error {
 	if err := m.ensureTable(ctx); err != nil {

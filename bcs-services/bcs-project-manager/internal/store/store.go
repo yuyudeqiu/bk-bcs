@@ -39,6 +39,7 @@ type ProjectModel interface {
 	ListProjects(ctx context.Context, cond *operator.Condition, opt *page.Pagination) ([]project.Project, int64, error)
 	SearchProjects(ctx context.Context, ids, limitIDs []string, searchKey, kind string, opt *page.Pagination) (
 		[]project.Project, int64, error)
+	GetTenantProjectByField(ctx context.Context, p *project.ProjectField) (*project.Project, error)
 
 	GetNamespace(ctx context.Context, projectCode, clusterID, name string) (*nsm.Namespace, error)
 	GetNamespaceByItsmTicketType(ctx context.Context,

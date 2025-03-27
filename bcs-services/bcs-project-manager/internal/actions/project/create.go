@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
@@ -129,7 +130,29 @@ func (ca *CreateAction) validate() error {
 	if len(strings.TrimSpace(name)) == 0 {
 		return fmt.Errorf("name cannot contains only spaces")
 	}
-	if p, _ := ca.model.GetProjectByField(ca.ctx, &pm.ProjectField{ProjectID: projectID, ProjectCode: projectCode,
+	// 先检查全局唯一的 ProjectID是否已经被使用了
+	p, err := ca.model.GetProject(ca.ctx, projectID)
+	if err != nil {
+		return err
+	}
+	if p != nil {
+		return fmt.Errorf("projectID: %s is already exists", projectID)
+	}
+
+	if config.GlobalConf.MultiTenantEnabled {
+		// 多租户 TenantID+TenantProjectCode 全局唯一，其他条件均为 Or
+		p, _ = ca.model.GetTenantProjectByField(ca.ctx, &pm.ProjectField{TenantID: auth.GetTenantFromCtx(ca.ctx),
+			TenantProjectCode: projectCode, Name: name})
+		if p.TenantProjectCode == projectCode {
+			return fmt.Errorf("projectCode: %s is already exists", projectCode)
+		}
+		if p.Name == name {
+			return fmt.Errorf("name: %s is already exists", name)
+		}
+		return nil
+	}
+	// 单租户情况保持原查询方式
+	if p, _ = ca.model.GetProjectByField(ca.ctx, &pm.ProjectField{ProjectID: projectID, ProjectCode: projectCode,
 		Name: name}); p != nil {
 		if p.ProjectID == projectID {
 			return fmt.Errorf("projectID: %s is already exists", projectID)
