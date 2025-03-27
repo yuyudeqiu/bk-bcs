@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/bcscc"
@@ -100,6 +102,17 @@ func (ua *UpdateAction) validate() error {
 	}
 	if len(strings.TrimSpace(name)) == 0 {
 		return fmt.Errorf("name cannot contains only spaces")
+	}
+	if config.GlobalConf.MultiTenantEnabled {
+		if p, _ := ua.model.GetTenantProjectByField(ua.ctx, &pm.ProjectField{TenantID: auth.GetTenantFromCtx(ua.ctx),
+			Name: name}); p != nil {
+			if p.ProjectID == ua.req.ProjectID {
+				// 如果是同一个项目，忽略名称校验
+				return nil
+			}
+			return fmt.Errorf("name: %s is already exists", name)
+		}
+		return nil
 	}
 	// check name unique
 	if p, _ := ua.model.GetProjectByField(ua.ctx, &pm.ProjectField{Name: name}); p != nil {
