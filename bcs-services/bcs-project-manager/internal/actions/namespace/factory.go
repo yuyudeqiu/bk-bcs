@@ -19,7 +19,9 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/namespace/action"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/namespace/independent"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/actions/namespace/shared"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/clustermanager"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/logging"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
@@ -39,7 +41,7 @@ func NewNamespaceFactory(model store.ProjectModel) *NamespaceFactory {
 }
 
 // Action get action by clusterID
-func (f *NamespaceFactory) Action(clusterID, projectIDOrCode string) (action.NamespaceAction, error) {
+func (f *NamespaceFactory) Action(ctx context.Context, clusterID, projectIDOrCode string) (action.NamespaceAction, error) {
 	cluster, err := clustermanager.GetCluster(clusterID)
 	if err != nil {
 		logging.Error("get cluster %s from cluster-manager failed, err: %s", cluster, err.Error())
@@ -52,10 +54,15 @@ func (f *NamespaceFactory) Action(clusterID, projectIDOrCode string) (action.Nam
 		}
 		return independent.NewIndependentNamespaceAction(f.model), nil
 	}
-	project, err := f.model.GetProject(context.TODO(), projectIDOrCode)
+	project, err := f.model.GetProject(ctx, projectIDOrCode)
 	if err != nil {
 		logging.Error("get project from db failed, err: %s", err.Error())
 		return nil, err
+	}
+	tenantId := auth.GetTenantFromCtx(ctx)
+	if config.GlobalConf.MultiTenantEnabled && project.TenantID != tenantId {
+		logging.Warn("get project from other tenant, tenantId: %s, projectTenantId: %s", tenantId, project.TenantID)
+		return nil, errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project not belong to current tenant")
 	}
 	if cluster.GetProjectID() != project.ProjectID {
 		if cluster.GetIsShared() {
