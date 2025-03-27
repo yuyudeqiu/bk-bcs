@@ -17,7 +17,9 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/cmdb"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/stringx"
@@ -46,6 +48,10 @@ func (ga *GetAction) Do(ctx context.Context, req *proto.GetBusinessRequest) (*pr
 	p, err := ga.model.GetProject(ctx, req.GetProjectCode())
 	if err != nil {
 		return nil, errorx.NewDBErr(err.Error())
+	}
+
+	if config.GlobalConf.MultiTenantEnabled && p.TenantID != auth.GetTenantFromCtx(ctx) {
+		return nil, errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project is not belong to current tenant")
 	}
 
 	if p.BusinessID == "" || p.BusinessID == "0" {
