@@ -18,7 +18,7 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/odm/operator"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/page"
@@ -84,7 +84,7 @@ func (ga *ListAction) listBusinessEnabledBCS() ([]*proto.BusinessData, error) {
 	cond := operator.NewLeafCondition(operator.Eq, operator.M{
 		"kind": "k8s",
 	})
-	if config.GlobalConf.MultiTenantEnabled {
+	if tenant.IsMultiTenantEnabled() {
 		tenantCond := operator.NewLeafCondition(operator.Eq, operator.M{"tenantId": auth.GetTenantFromCtx(ga.ctx)})
 		cond = operator.NewBranchCondition(operator.And, cond, tenantCond)
 	}
