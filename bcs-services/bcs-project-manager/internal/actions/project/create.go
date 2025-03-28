@@ -108,7 +108,7 @@ func (ca *CreateAction) createProject() error {
 	if authUser, err := middleware.GetUserFromContext(ca.ctx); err == nil {
 		p.Creator = authUser.GetUsername()
 		p.Managers = authUser.GetUsername()
-		p.TenantID = authUser.GetTanantId()
+		p.TenantID = authUser.GetTanantId() // 单租户模式下该字段为 default
 	}
 
 	// TODO 使用 user-manager 接口获取 用户当前所属的租户 & displayName & bk_username

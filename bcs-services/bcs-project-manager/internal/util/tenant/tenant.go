@@ -37,6 +37,10 @@ func VerifyProject(ctx context.Context, project *project.Project) error {
 		return errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project is empty")
 	}
 	tenantID := auth.GetTenantFromCtx(ctx)
+	// 如果是 default 租户，project 的 tenantID可能为空字符串
+	if tenantID == "default" && project.TenantID == "" {
+		return nil
+	}
 	// 如果启用了多租户模式，但资源不属于当前租户，则返回资源不存在错误
 	if project.TenantID != tenantID {
 		return errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project not found")
