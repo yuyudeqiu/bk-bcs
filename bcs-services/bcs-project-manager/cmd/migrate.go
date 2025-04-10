@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/script/migrations/tenant"
 	"github.com/spf13/cobra"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
@@ -54,7 +55,28 @@ var migrateInitITSMCmd = &cobra.Command{
 	},
 }
 
+var migrateInitTenantCmd = &cobra.Command{
+	Use:   "init-tenant",
+	Short: "init bcs project manager tenant info",
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, err := config.LoadConfig(configPath); err != nil {
+			fmt.Printf("load config failed, err: %s\n", err.Error())
+			os.Exit(1)
+		}
+		if !config.GlobalConf.MultiTenantEnabled {
+			fmt.Printf("multi tenant is disabled or auto register is disabled, skip migration")
+			return
+		}
+		if err := tenant.InitProject(); err != nil {
+			fmt.Printf("init tenant project failed, err: %s\n", err.Error())
+			os.Exit(1)
+		}
+		fmt.Printf("init tenant project successfully\n")
+	},
+}
+
 func init() {
 	migrateCmd.AddCommand(migrateInitITSMCmd)
+	migrateCmd.AddCommand(migrateInitTenantCmd)
 	rootCmd.AddCommand(migrateCmd)
 }
