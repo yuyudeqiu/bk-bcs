@@ -59,7 +59,7 @@ func (p *ProjectHandler) CreateProject(ctx context.Context,
 	authUser, err := middleware.GetUserFromContext(ctx)
 	if err == nil && authUser.Username != "" {
 		// 授权创建者项目编辑和查看权限
-		if err := iam.GrantProjectCreatorActions(authUser.Username, projectInfo.ProjectID, projectInfo.Name); err != nil {
+		if err := iam.GrantProjectCreatorActions(ctx, authUser.Username, projectInfo.ProjectID, projectInfo.Name); err != nil {
 			logging.Error("grant project %s for creator %s permission failed, err: %s",
 				projectInfo.ProjectID, authUser.Username, err.Error())
 		}
@@ -80,7 +80,7 @@ func (p *ProjectHandler) GetProject(ctx context.Context,
 	}
 	businessName := ""
 	if projectInfo.BusinessID != "" && projectInfo.BusinessID != "0" {
-		business, err := cmdb.GetBusinessByID(projectInfo.BusinessID, true)
+		business, err := cmdb.GetBusinessByID(ctx, projectInfo.BusinessID, true)
 		if err != nil {
 			logging.Error("get business %s failed, err: %s", projectInfo.BusinessID, err.Error())
 		} else {
@@ -145,7 +145,7 @@ func (p *ProjectHandler) ListProjects(ctx context.Context,
 		// without username
 		setListPermsResp(resp, projects, nil)
 	}
-	projutil.PatchBusinessName(resp.Data.Results)
+	projutil.PatchBusinessName(ctx, resp.Data.Results)
 	return nil
 }
 
@@ -176,7 +176,7 @@ func (p *ProjectHandler) ListAuthorizedProjects(ctx context.Context,
 		// list all authorized projects, so no need to set web_annotation
 		setListResp(resp, projects)
 	}
-	projutil.PatchBusinessName(resp.Data.Results)
+	projutil.PatchBusinessName(ctx, resp.Data.Results)
 
 	return nil
 }

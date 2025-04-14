@@ -67,7 +67,7 @@ func (n *NamespaceManager) SyncNamespaceItsmStatus() {
 		snList = append(snList, namespace.ItsmTicketSN)
 		nsMap[namespace.ItsmTicketSN] = namespace
 	}
-	tickets, err := itsm.ListTickets(snList)
+	tickets, err := itsm.ListTickets(n.ctx, snList)
 	if err != nil {
 		logging.Error("list namespace itsm tickets %v failed, err: %s", snList, err.Error())
 		return

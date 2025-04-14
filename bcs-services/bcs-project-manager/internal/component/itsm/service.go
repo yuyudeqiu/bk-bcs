@@ -14,10 +14,12 @@
 package itsm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component"
@@ -47,7 +49,7 @@ type Service struct {
 }
 
 // ListServices list itsm services by catalog id
-func ListServices(catalogID uint32) ([]Service, error) {
+func ListServices(ctx context.Context, catalogID uint32) ([]Service, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -61,7 +63,7 @@ func ListServices(catalogID uint32) ([]Service, error) {
 	}
 	// 请求API
 	proxy := ""
-	body, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, proxy, component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request list itsm services in catalog %d failed, %s", catalogID, err.Error())
 		return nil, errorx.NewRequestITSMErr(err.Error())
@@ -119,7 +121,7 @@ type ImportServiceData struct {
 }
 
 // ImportService import itsm service
-func ImportService(data ImportServiceReq) (int, error) {
+func ImportService(ctx context.Context, data ImportServiceReq) (int, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -146,7 +148,8 @@ func ImportService(data ImportServiceReq) (int, error) {
 		},
 	}
 	// 请求API
-	body, err := component.Request(req, timeout, "", component.GetAuthHeader())
+	body, err := component.Request(req, timeout, "",
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request import service %s failed, %s", data.Name, err.Error())
 		return 0, errorx.NewRequestITSMErr(err.Error())
@@ -171,7 +174,7 @@ type UpdateServiceReq struct {
 }
 
 // UpdateService update itsm service
-func UpdateService(data UpdateServiceReq) error {
+func UpdateService(ctx context.Context, data UpdateServiceReq) error {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -199,7 +202,8 @@ func UpdateService(data UpdateServiceReq) error {
 		},
 	}
 	// 请求API
-	body, err := component.Request(req, timeout, "", component.GetAuthHeader())
+	body, err := component.Request(req, timeout, "",
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request update service %s failed, %s", data.Name, err.Error())
 		return errorx.NewRequestITSMErr(err.Error())

@@ -14,11 +14,13 @@
 package bkmonitor
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component"
@@ -72,7 +74,7 @@ type Space struct {
 }
 
 // CreateSpace create bkmonitor space for bcs project
-func CreateSpace(project *project.Project) error {
+func CreateSpace(ctx context.Context, project *project.Project) error {
 	bkmConf := config.GlobalConf.Bkmonitor
 	// 使用网关访问
 	reqURL := fmt.Sprintf("%s%s", bkmConf.GatewayHost, createSpacePath)
@@ -87,7 +89,8 @@ func CreateSpace(project *project.Project) error {
 	}
 	// 请求API
 	proxy := ""
-	body, err := component.Request(*req, timeout, proxy, component.GetAuthHeader())
+	body, err := component.Request(*req, timeout, proxy,
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request create bkmonitor space for project %s failed, %s", project.ProjectID, err.Error())
 		return errorx.NewRequestBkMonitorErr(err.Error())
@@ -106,7 +109,7 @@ func CreateSpace(project *project.Project) error {
 }
 
 // ListSpaces list bkmonitor spaces for bcs
-func ListSpaces() ([]*Space, error) {
+func ListSpaces(ctx context.Context) ([]*Space, error) {
 	bkmConf := config.GlobalConf.Bkmonitor
 	// 使用网关访问
 	reqURL := fmt.Sprintf("%s%s", bkmConf.GatewayHost, listSpacesPath)
@@ -119,7 +122,8 @@ func ListSpaces() ([]*Space, error) {
 		req.QueryData.Set("page_size", strconv.Itoa(pageSize))
 		// 请求API
 		proxy := ""
-		body, err := component.Request(*req, timeout, proxy, component.GetAuthHeader())
+		body, err := component.Request(*req, timeout, proxy,
+			component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 		if err != nil {
 			logging.Error("request list bkmonitor bcs spaces failed, %s", err.Error())
 			return nil, errorx.NewRequestBkMonitorErr(err.Error())

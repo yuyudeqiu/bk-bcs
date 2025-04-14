@@ -16,10 +16,9 @@ package tenant
 import (
 	"context"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/constant"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/headerkey"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/store/project"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/errorx"
 )
 
 // IsMultiTenantEnabled 检查是否启用了多租户模式
@@ -27,23 +26,14 @@ func IsMultiTenantEnabled() bool {
 	return config.GlobalConf.MultiTenantEnabled
 }
 
-// VerifyProject 验证Project是否属于当前租户
-func VerifyProject(ctx context.Context, project *project.Project) error {
-	// 如果未启用多租户模式，则直接返回nil
-	if !IsMultiTenantEnabled() {
-		return nil
+// GetTenantIdFromCtx get tenantId from context
+func GetTenantIdFromCtx(ctx context.Context) string {
+	tenantId := ""
+	if id, ok := ctx.Value(headerkey.TenantIdKey).(string); ok {
+		tenantId = id
 	}
-	if project == nil {
-		return errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project is empty")
+	if tenantId == "" {
+		tenantId = constant.DefaultTenantId
 	}
-	tenantID := auth.GetTenantIdFromCtx(ctx)
-	// 如果是 default 租户，project 的 tenantID可能为空字符串
-	if tenantID == "default" && project.TenantID == "" {
-		return nil
-	}
-	// 如果启用了多租户模式，但资源不属于当前租户，则返回资源不存在错误
-	if project.TenantID != tenantID {
-		return errorx.NewReadableErr(errorx.ProjectNotExistsErr, "project not found")
-	}
-	return nil
+	return tenantId
 }

@@ -14,10 +14,12 @@
 package itsm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component"
@@ -33,6 +35,7 @@ var (
 
 // CreateCatalogReq 创建服务目录请求
 type CreateCatalogReq struct {
+	TenantId string `json:"tenant_id"`
 	// ProjectKey 项目id, 默认为 "0"
 	ProjectKey string `json:"project_key"`
 	// ParentID 父目录ID
@@ -55,7 +58,7 @@ type CreateCatalogData struct {
 }
 
 // CreateCatalog 创建服务目录，返回目录ID
-func CreateCatalog(data CreateCatalogReq) (uint32, error) {
+func CreateCatalog(ctx context.Context, data CreateCatalogReq) (uint32, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -74,7 +77,8 @@ func CreateCatalog(data CreateCatalogReq) (uint32, error) {
 		},
 	}
 	// 请求API
-	body, err := component.Request(req, timeout, "", component.GetAuthHeader())
+	body, err := component.Request(req, timeout, "",
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request create itsm catalog %v failed, error: %s", data.Name, err.Error())
 		return 0, errorx.NewRequestITSMErr(err.Error())
@@ -115,7 +119,7 @@ type ListCatalogsResp struct {
 }
 
 // ListCatalogs 获取服务目录列表
-func ListCatalogs() ([]Catalog, error) {
+func ListCatalogs(ctx context.Context) ([]Catalog, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -128,7 +132,8 @@ func ListCatalogs() ([]Catalog, error) {
 		Method: "GET",
 	}
 	// 请求API
-	body, err := component.Request(req, timeout, "", component.GetAuthHeader())
+	body, err := component.Request(req, timeout, "",
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request get itsm catalogs failed, error: %s", err.Error())
 		return nil, errorx.NewRequestITSMErr(err.Error())

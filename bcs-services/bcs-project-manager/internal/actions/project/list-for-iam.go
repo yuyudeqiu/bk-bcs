@@ -52,8 +52,7 @@ func (la *ListForIAMAction) Do(ctx context.Context, req *proto.ListProjectsForIA
 	if err != nil {
 		return nil, errorx.NewDBErr(err.Error())
 	}
-	// TODO 请求监控时是否需要带上 TenantID ?
-	spaces, err := bkmonitor.ListSpaces()
+	spaces, err := bkmonitor.ListSpaces(ctx)
 	if err != nil {
 		return nil, err
 	}

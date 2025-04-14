@@ -36,7 +36,7 @@ func (a *SharedNamespaceAction) WithdrawNamespace(ctx context.Context,
 	if err != nil || authUser.GetUsername() != namespace.Creator {
 		return errorx.NewReadableErr(errorx.PermDeniedErr, "仅提单人能撤回")
 	}
-	if err := itsm.WithdrawTicket(authUser.Username, namespace.ItsmTicketSN); err != nil {
+	if err := itsm.WithdrawTicket(ctx, authUser.Username, namespace.ItsmTicketSN); err != nil {
 		return err
 	}
 	return a.model.DeleteNamespace(ctx, namespace.ProjectCode, namespace.ClusterID, namespace.Name)

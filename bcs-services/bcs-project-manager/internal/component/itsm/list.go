@@ -14,10 +14,12 @@
 package itsm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component"
@@ -87,7 +89,7 @@ type TicketsItem struct {
 }
 
 // ListTickets list itsm tickets by sn list
-func ListTickets(snList []string) ([]TicketsItem, error) {
+func ListTickets(ctx context.Context, snList []string) ([]TicketsItem, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -107,7 +109,8 @@ func ListTickets(snList []string) ([]TicketsItem, error) {
 		}
 		// 请求API
 		proxy := ""
-		body, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+		body, err := component.Request(req, timeout, proxy,
+			component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 		if err != nil {
 			logging.Error("request list itsm tickets %v failed, %s", snList, err.Error())
 			return nil, errorx.NewRequestITSMErr(err.Error())
@@ -150,7 +153,7 @@ type TicketApprovalItem struct {
 }
 
 // ListTicketsApprovalResult list itsm tickets approval result by sn list
-func ListTicketsApprovalResult(snList []string) ([]TicketApprovalItem, error) {
+func ListTicketsApprovalResult(ctx context.Context, snList []string) ([]TicketApprovalItem, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -168,7 +171,7 @@ func ListTicketsApprovalResult(snList []string) ([]TicketApprovalItem, error) {
 	}
 	// 请求API
 	proxy := ""
-	body, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, proxy, component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request list itsm tickets approval %v failed, %s", snList, err.Error())
 		return nil, errorx.NewRequestITSMErr(err.Error())

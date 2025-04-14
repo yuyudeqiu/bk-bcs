@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/middleware"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -95,9 +94,8 @@ func (a *SharedNamespaceAction) CreateNamespace(ctx context.Context,
 		return err
 	}
 	// memoryLimits.Value() return unit is byte， needs to be converted to Gi (divide 2^30)
-	// TODO ITSM 传入 tenantID
-	itsmResp, err := itsm.SubmitCreateNamespaceTicket(username, req.GetProjectCode(), req.GetClusterID(), req.GetName(),
-		auth.GetTenantIdFromCtx(ctx), int(cpuLimits.Value()), int(memoryLimits.Value()/int64(math.Pow(2, 30))))
+	itsmResp, err := itsm.SubmitCreateNamespaceTicket(ctx, username, req.GetProjectCode(), req.GetClusterID(), req.GetName(),
+		int(cpuLimits.Value()), int(memoryLimits.Value()/int64(math.Pow(2, 30))))
 	if err != nil {
 		logging.Error("itsm create ticket failed, err: %s", err.Error())
 		return err

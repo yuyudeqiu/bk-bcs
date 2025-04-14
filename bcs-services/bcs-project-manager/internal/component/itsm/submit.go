@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component"
@@ -50,7 +51,7 @@ type CreateTicketData struct {
 }
 
 // CreateTicket create itsm ticket
-func CreateTicket(username string, serviceID int, fields []map[string]interface{}) (*CreateTicketData, error) {
+func CreateTicket(ctx context.Context, username string, serviceID int, fields []map[string]interface{}) (*CreateTicketData, error) {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -69,7 +70,7 @@ func CreateTicket(username string, serviceID int, fields []map[string]interface{
 	}
 	// 请求API
 	proxy := ""
-	body, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, proxy, component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request itsm create ticket failed, %s", err.Error())
 		return nil, errorx.NewRequestITSMErr(err.Error())
@@ -88,8 +89,8 @@ func CreateTicket(username string, serviceID int, fields []map[string]interface{
 }
 
 // SubmitCreateNamespaceTicket create new itsm create namespace ticket
-func SubmitCreateNamespaceTicket(username, projectCode, clusterID, namespace string,
-	tenantId string, cpuLimits, memoryLimits int) (*CreateTicketData, error) {
+func SubmitCreateNamespaceTicket(ctx context.Context, username, projectCode, clusterID, namespace string,
+	cpuLimits, memoryLimits int) (*CreateTicketData, error) {
 	var serviceID int
 	itsmConf := config.GlobalConf.ITSM
 	if itsmConf.AutoRegister {
@@ -131,11 +132,11 @@ func SubmitCreateNamespaceTicket(username, projectCode, clusterID, namespace str
 			"value": memoryLimits,
 		},
 	}
-	return CreateTicket(username, serviceID, fields)
+	return CreateTicket(ctx, username, serviceID, fields)
 }
 
 // SubmitUpdateNamespaceTicket create new itsm update namespace ticket
-func SubmitUpdateNamespaceTicket(username, projectCode, clusterID, namespace string,
+func SubmitUpdateNamespaceTicket(ctx context.Context, username, projectCode, clusterID, namespace string,
 	cpuLimits, memoryLimits, oldCPULimits, oldMemoryLimits int) (*CreateTicketData, error) {
 	var serviceID int
 	itsmConf := config.GlobalConf.ITSM
@@ -186,11 +187,11 @@ func SubmitUpdateNamespaceTicket(username, projectCode, clusterID, namespace str
 			"value": oldMemoryLimits,
 		},
 	}
-	return CreateTicket(username, serviceID, fields)
+	return CreateTicket(ctx, username, serviceID, fields)
 }
 
 // SubmitDeleteNamespaceTicket create new itsm delete namespace ticket
-func SubmitDeleteNamespaceTicket(username, projectCode, clusterID, namespace string) (*CreateTicketData, error) {
+func SubmitDeleteNamespaceTicket(ctx context.Context, username, projectCode, clusterID, namespace string) (*CreateTicketData, error) {
 	var serviceID int
 	itsmConf := config.GlobalConf.ITSM
 	if itsmConf.AutoRegister {
@@ -224,11 +225,11 @@ func SubmitDeleteNamespaceTicket(username, projectCode, clusterID, namespace str
 			"value": namespace,
 		},
 	}
-	return CreateTicket(username, serviceID, fields)
+	return CreateTicket(ctx, username, serviceID, fields)
 }
 
 // SubmitQuotaManagerCommonTicket create new itsm quota manager ticket 额度管理通用审批单据
-func SubmitQuotaManagerCommonTicket(username, projectCode, clusterID, content string) (*CreateTicketData, error) {
+func SubmitQuotaManagerCommonTicket(ctx context.Context, username, projectCode, clusterID, content string) (*CreateTicketData, error) {
 	var (
 		serviceID int
 		itsmConf  = config.GlobalConf.ITSM
@@ -266,5 +267,5 @@ func SubmitQuotaManagerCommonTicket(username, projectCode, clusterID, content st
 			"value": content,
 		},
 	}
-	return CreateTicket(username, serviceID, fields)
+	return CreateTicket(ctx, username, serviceID, fields)
 }

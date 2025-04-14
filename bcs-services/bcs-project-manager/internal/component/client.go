@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/audit"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/headerkey"
 	goReq "github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/config"
@@ -113,6 +114,13 @@ func GetAuthHeader() map[string]string {
 		"X-Bkapi-Authorization": fmt.Sprintf(`{"bk_app_code": "%s", "bk_app_secret": "%s", "bk_username": "%s"}`,
 			config.GlobalConf.App.Code, config.GlobalConf.App.Secret, config.GlobalConf.App.BkUsername),
 	}
+}
+
+// GetAuthHeaderWithTenantId 获取蓝鲸网关认证头信息，通过ctx注入 X-Bk-Tenant-Id
+func GetAuthHeaderWithTenantId(tenantId string) map[string]string {
+	header := GetAuthHeader()
+	header[headerkey.TenantIdKey] = tenantId
+	return header
 }
 
 // GetBcsGatewayAuthHeader 获取BCS网关认证header

@@ -14,10 +14,12 @@
 package itsm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component"
@@ -37,7 +39,7 @@ type OperateTicketResp struct {
 }
 
 // WithdrawTicket withdraw itsm ticket
-func WithdrawTicket(username, sn string) error {
+func WithdrawTicket(ctx context.Context, username, sn string) error {
 	itsmConf := config.GlobalConf.ITSM
 	// 默认使用网关访问，如果为外部版，则使用ESB访问
 	host := itsmConf.GatewayHost
@@ -57,7 +59,7 @@ func WithdrawTicket(username, sn string) error {
 	}
 	// 请求API
 	proxy := ""
-	body, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, proxy, component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request itsm withdraw ticket %s failed, %s", sn, err.Error())
 		return errorx.NewRequestITSMErr(err.Error())

@@ -99,6 +99,9 @@ func CheckUserResourceTenantAttrFunc(fn server.HandlerFunc) server.HandlerFunc {
 				user.GetUsername(), tenantId, resourceTenantId)
 		}
 
+		// 注入租户信息
+		ctx = context.WithValue(ctx, headerkey.TenantIdKey, tenantId)
+
 		return fn(ctx, req, rsp)
 	}
 }

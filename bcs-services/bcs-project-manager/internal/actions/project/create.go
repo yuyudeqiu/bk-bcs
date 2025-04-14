@@ -169,5 +169,6 @@ func (ca *CreateAction) validate() error {
 func (ca *CreateAction) generateProjectCode(tenantID, tenantProjectCode string) string {
 	// TODO 系统生成，english_name=xxxx-$｛tenant_english_name｝ 前缀为租户 ID，分隔符为中划线（-）
 	//  这里可能需要一些 user-manager 提供的信息来拼接？
+
 	return fmt.Sprintf("%s-%s", tenantID, tenantProjectCode)
 }

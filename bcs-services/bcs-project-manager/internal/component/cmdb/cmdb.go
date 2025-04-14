@@ -14,11 +14,13 @@
 package cmdb
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/parnurzeal/gorequest"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/cache"
@@ -100,8 +102,8 @@ type BusinessData struct {
 }
 
 // IsMaintainer 校验用户是否为指定业务的运维
-func IsMaintainer(username string, bizID string) (bool, error) {
-	searchData, err := SearchBusiness(username, bizID)
+func IsMaintainer(ctx context.Context, username string, bizID string) (bool, error) {
+	searchData, err := SearchBusiness(ctx, username, bizID)
 	if err != nil {
 		return false, err
 	}
@@ -113,7 +115,7 @@ func IsMaintainer(username string, bizID string) (bool, error) {
 }
 
 // GetBusinessByID 通过业务ID获取业务信息
-func GetBusinessByID(bizID string, useCache bool) (BusinessData, error) {
+func GetBusinessByID(ctx context.Context, bizID string, useCache bool) (BusinessData, error) {
 	// 先尝试从缓存中获取
 	c := cache.GetCache()
 	if useCache {
@@ -123,7 +125,7 @@ func GetBusinessByID(bizID string, useCache bool) (BusinessData, error) {
 			return data, nil
 		}
 	}
-	data, err := SearchBusiness("", bizID)
+	data, err := SearchBusiness(ctx, "", bizID)
 	if err != nil {
 		return BusinessData{}, err
 	}
@@ -135,7 +137,7 @@ func GetBusinessByID(bizID string, useCache bool) (BusinessData, error) {
 }
 
 // SearchBusiness 通过用户和业务ID，查询业务
-func SearchBusiness(username string, bizID string) (*SearchBusinessData, error) {
+func SearchBusiness(ctx context.Context, username, bizID string) (*SearchBusinessData, error) {
 	// 获取超时时间
 	timeout := defaultTimeout
 	if config.GlobalConf.CMDB.Timeout != 0 {
@@ -165,7 +167,8 @@ func SearchBusiness(username string, bizID string) (*SearchBusinessData, error) 
 		Debug: config.GlobalConf.CMDB.Debug,
 	}
 	// 获取返回数据
-	body, err := component.Request(req, timeout, config.GlobalConf.CMDB.Proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, config.GlobalConf.CMDB.Proxy,
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		return nil, errorx.NewRequestCMDBErr(err.Error())
 	}
@@ -182,8 +185,8 @@ func SearchBusiness(username string, bizID string) (*SearchBusinessData, error) 
 }
 
 // GetBusinessMaintainers get maintainers by bizID
-func GetBusinessMaintainers(bizID string) ([]string, error) {
-	business, err := GetBusinessByID(bizID, false)
+func GetBusinessMaintainers(ctx context.Context, bizID string) ([]string, error) {
+	business, err := GetBusinessByID(ctx, bizID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +197,7 @@ func GetBusinessMaintainers(bizID string) ([]string, error) {
 
 // BatchSearchBusinessByBizIDs batch search business by bizIDs
 // if any bizID not exists or error, warning will be logged and continue
-func BatchSearchBusinessByBizIDs(bizIDs []string) map[string]BusinessData {
+func BatchSearchBusinessByBizIDs(ctx context.Context, bizIDs []string) map[string]BusinessData {
 	if len(bizIDs) == 0 {
 		return nil
 	}
@@ -243,7 +246,7 @@ func BatchSearchBusinessByBizIDs(bizIDs []string) map[string]BusinessData {
 			},
 		}
 
-		businesses, err := searchBusinessByIds(condition, rules)
+		businesses, err := searchBusinessByIds(ctx, condition, rules)
 		if err != nil {
 			logging.Error("batch search business failed, err: %s", err.Error())
 			continue
@@ -258,7 +261,7 @@ func BatchSearchBusinessByBizIDs(bizIDs []string) map[string]BusinessData {
 }
 
 // GetBusinessTopology get business topology by bizID
-func GetBusinessTopology(bizID string) ([]BusinessTopologyData, error) {
+func GetBusinessTopology(ctx context.Context, bizID string) ([]BusinessTopologyData, error) {
 	// 获取超时时间
 	timeout := defaultTimeout
 	if config.GlobalConf.CMDB.Timeout != 0 {
@@ -280,7 +283,8 @@ func GetBusinessTopology(bizID string) ([]BusinessTopologyData, error) {
 		Debug: config.GlobalConf.CMDB.Debug,
 	}
 	// 获取返回数据
-	body, err := component.Request(req, timeout, config.GlobalConf.CMDB.Proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, config.GlobalConf.CMDB.Proxy,
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		return nil, errorx.NewRequestCMDBErr(err.Error())
 	}
@@ -296,7 +300,7 @@ func GetBusinessTopology(bizID string) ([]BusinessTopologyData, error) {
 	return resp.Data, nil
 }
 
-func searchBusinessByIds(condition string, rules []map[string]interface{}) ([]BusinessData, error) {
+func searchBusinessByIds(ctx context.Context, condition string, rules []map[string]interface{}) ([]BusinessData, error) {
 	timeout := defaultTimeout
 	if config.GlobalConf.CMDB.Timeout != 0 {
 		timeout = config.GlobalConf.CMDB.Timeout
@@ -319,7 +323,8 @@ func searchBusinessByIds(condition string, rules []map[string]interface{}) ([]Bu
 		Debug: config.GlobalConf.CMDB.Debug,
 	}
 	// 获取返回数据
-	body, err := component.Request(req, timeout, config.GlobalConf.CMDB.Proxy, component.GetAuthHeader())
+	body, err := component.Request(req, timeout, config.GlobalConf.CMDB.Proxy,
+		component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("request search business failed, err: %s", err.Error())
 		return nil, fmt.Errorf("request search business failed, err: %s", err.Error())

@@ -55,10 +55,11 @@ func (s itsmApproveStep) DoWork(task *types.Task) error {
 	if !ok {
 		return fmt.Errorf("itsmApproveStep[%s] get itsmSn failed", task.TaskID)
 	}
-
+	// TODO params 中获取 tenantId
+	ctx := context.Background()
 	// 查询单据状态，当前不会超时。后续可根据默认超时时间取消该单据(30天等)
 	err := common_task.LoopDoFunc(context.Background(), func() error {
-		ticket, err := itsm.ListTicketsApprovalResult([]string{sn})
+		ticket, err := itsm.ListTicketsApprovalResult(ctx, []string{sn})
 		if err != nil {
 			logging.Error("itsmApproveStep[%s] ListTicketsApprovalResult failed: %v", task.GetTaskID(), err)
 			return nil

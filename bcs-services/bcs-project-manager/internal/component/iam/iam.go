@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	bcsIAM "github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/util/tenant"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/manager"
 	authutils "github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/utils"
 	"github.com/parnurzeal/gorequest"
@@ -35,7 +36,7 @@ var (
 )
 
 // GrantProjectCreatorActions grant create action perm for project
-func GrantProjectCreatorActions(username string, projectID string, projectName string) error {
+func GrantProjectCreatorActions(ctx context.Context, username string, projectID string, projectName string) error {
 	iamConf := config.GlobalConf.IAM
 	// 使用网关访问
 	reqURL := fmt.Sprintf("%s%s", iamConf.GatewayHost, grantActionPath)
@@ -52,7 +53,7 @@ func GrantProjectCreatorActions(username string, projectID string, projectName s
 	}
 	// 请求API
 	proxy := ""
-	_, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+	_, err := component.Request(req, timeout, proxy, component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("grant creator actions for project failed, %s", err.Error())
 		return errorx.NewRequestIAMErr(err.Error())
@@ -61,7 +62,7 @@ func GrantProjectCreatorActions(username string, projectID string, projectName s
 }
 
 // GrantNamespaceCreatorActions grant create action perm for namespace
-func GrantNamespaceCreatorActions(username, clusterID, namespace string) error {
+func GrantNamespaceCreatorActions(ctx context.Context, username, clusterID, namespace string) error {
 	iamConf := config.GlobalConf.IAM
 	// 使用网关访问
 	reqURL := fmt.Sprintf("%s%s", iamConf.GatewayHost, grantActionPath)
@@ -79,7 +80,7 @@ func GrantNamespaceCreatorActions(username, clusterID, namespace string) error {
 	}
 	// 请求API
 	proxy := ""
-	_, err := component.Request(req, timeout, proxy, component.GetAuthHeader())
+	_, err := component.Request(req, timeout, proxy, component.GetAuthHeaderWithTenantId(tenant.GetTenantIdFromCtx(ctx)))
 	if err != nil {
 		logging.Error("grant creator actions for namespace failed, %s", err.Error())
 		return errorx.NewRequestIAMErr(err.Error())

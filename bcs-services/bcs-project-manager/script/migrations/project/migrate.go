@@ -29,6 +29,7 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/odm/drivers"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/odm/operator"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/constant"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 
@@ -229,7 +230,7 @@ func initBuiltInProject() error {
 	p := &pm.Project{
 		ProjectID:         projectID,
 		Name:              "蓝鲸",
-		TenantID:          "default",
+		TenantID:          constant.SystemTenantId,
 		ProjectCode:       stringx.GetEnv("INIT_PROJECT_CODE", "blueking"),
 		TenantProjectCode: stringx.GetEnv("INIT_PROJECT_CODE", "blueking"),
 		Creator:           stringx.GetEnv("INIT_PROJECT_USER", "admin"),

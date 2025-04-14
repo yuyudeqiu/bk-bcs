@@ -57,7 +57,7 @@ func (ga *ListAction) Do(ctx context.Context, req *proto.ListBusinessRequest) ([
 	if err != nil || authUser.Username == "" {
 		return nil, errorx.NewReadableErr(errorx.ParamErr, "username is empty")
 	}
-	searchData, err := cmdb.SearchBusiness(authUser.Username, "")
+	searchData, err := cmdb.SearchBusiness(ctx, authUser.Username, "")
 	if err != nil {
 		return nil, errorx.NewRequestCMDBErr(err.Error())
 	}
@@ -76,7 +76,7 @@ func (ga *ListAction) Do(ctx context.Context, req *proto.ListBusinessRequest) ([
 }
 
 func (ga *ListAction) listBusinessEnabledBCS() ([]*proto.BusinessData, error) {
-	searchData, err := cmdb.SearchBusiness("", "")
+	searchData, err := cmdb.SearchBusiness(ga.ctx, "", "")
 	if err != nil {
 		return nil, errorx.NewRequestCMDBErr(err.Error())
 	}

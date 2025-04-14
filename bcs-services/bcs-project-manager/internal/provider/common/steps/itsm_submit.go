@@ -18,10 +18,11 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-common/common/task"
 	"github.com/Tencent/bk-bcs/bcs-common/common/task/types"
-
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/common/headerkey"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/component/itsm"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/logging"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-project-manager/internal/provider/utils"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -68,9 +69,13 @@ func (s itsmSubmitStep) getStepParams(task *types.Task) (*ItsmStepParams, error)
 	if !ok {
 		return nil, fmt.Errorf("task[%s] step[%s] content empty", task.GetTaskID(), s.GetName())
 	}
-
+	tenantId, ok := step.GetParam(utils.ContentKey.String())
+	if !ok {
+		return nil, fmt.Errorf("task[%s] step[%s] tenantId empty", task.GetTaskID(), s.GetName())
+	}
 	return &ItsmStepParams{
 		User:        user,
+		TenantId:    tenantId,
 		ProjectCode: projectCode,
 		ClusterId:   clusterId,
 		Content:     content,
@@ -84,8 +89,10 @@ func (s itsmSubmitStep) DoWork(task *types.Task) error {
 	if err != nil {
 		return err
 	}
-
-	itsmData, err := itsm.SubmitQuotaManagerCommonTicket(params.User, params.ProjectCode, params.ClusterId, params.Content)
+	// context 注入 params 中的 租户信息
+	ctx := context.WithValue(context.TODO(), headerkey.TenantIdKey, params.TenantId)
+	itsmData, err := itsm.SubmitQuotaManagerCommonTicket(ctx, params.User,
+		params.ProjectCode, params.ClusterId, params.Content)
 	if err != nil {
 		logging.Error("quotaManagerItsmSubmitStep[%s] SubmitQuotaManagerCommonTicket failed, err: %s",
 			task.GetTaskID(), err.Error())
@@ -118,6 +125,7 @@ func (s itsmSubmitStep) BuildStep(kvs []task.KeyValue, opts ...types.StepOption)
 // ItsmStepParams xxx
 type ItsmStepParams struct {
 	User        string
+	TenantId    string
 	ProjectCode string
 	ClusterId   string
 	Content     string
