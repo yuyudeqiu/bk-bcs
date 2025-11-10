@@ -1,10 +1,11 @@
 # ---------------- runner container ----------------
 
-FROM alpine:3.15
+FROM tencentos/tencentos4-minimal
 
 LABEL maintainer="Tencent BlueKing"
 
-RUN apk --update --no-cache add bash ca-certificates vim
+# 将apk替换为yum安装依赖
+RUN yum update -y && yum install -y bash ca-certificates vim && yum clean all && rm -rf /var/cache/yum/*
 
 WORKDIR /data/workspace
 
