@@ -1,4 +1,4 @@
-FROM centos:8
+FROM tencentos/tencentos4-minimal
 
 ENV GODEBUG=x509sha1=1
 
