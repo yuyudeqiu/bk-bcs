@@ -1,6 +1,9 @@
-FROM alpine
+FROM tencentos/tencentos4-minimal
 
-RUN apk --update --no-cache add ca-certificates bash vim curl gettext libc6-compat tzdata
+RUN yum update -y && \
+    yum install -y ca-certificates bash vim curl gettext glibc tzdata && \
+    yum clean all && \
+    rm -rf /var/cache/yum/*
 
 RUN mkdir -p /data/bcs/logs/bcs /data/bcs/cert
 RUN mkdir -p /data/bcs/bcs-user-manager
