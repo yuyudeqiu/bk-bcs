@@ -1,5 +1,5 @@
-FROM alpine
-RUN apk --update --no-cache add ca-certificates bash vim curl
+FROM tencentos/tencentos4-minimal
+RUN yum update -y && yum install -y ca-certificates bash vim curl && yum clean all && rm -rf /var/cache/yum/*
 COPY bcs-webconsole /bcs-webconsole
 ENTRYPOINT ["/bcs-webconsole"]
 CMD []
