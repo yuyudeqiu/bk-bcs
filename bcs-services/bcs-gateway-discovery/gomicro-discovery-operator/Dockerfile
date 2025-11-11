@@ -7,7 +7,7 @@ ARG BINARY=gomicro-discovery-operator
 
 RUN make build && chmod +x ./build/${BINARY}
 
-FROM debian:bullseye-slim
+FROM tencentos/tencentos4-minimal
 
 RUN mkdir /app
 COPY --from=builder /app/build/${BINARY} /app/${BINARY}
