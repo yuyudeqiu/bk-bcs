@@ -190,7 +190,7 @@ export default defineComponent({
       });
     };
 
-    const { menusData: menus, leafMenus } = useMenu();
+    const { menus, leafMenus } = useMenu();
     const { config } = usePlatform();
     const appLogo = computed(() => config.appLogo || logoSvg);
     const appName = computed(() => config.i18n.productName);
