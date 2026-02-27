@@ -42,7 +42,7 @@ export interface ICluster {
   provider: CloudID,
   projectID: string
   clusterBasicSettings: any
-  environment: 'stag'|'debug'|'prod'
+  environment: 'stag' | 'debug' | 'prod'
   extraInfo?: Record<string, any>
   manageType: 'INDEPENDENT_CLUSTER' | 'MANAGED_CLUSTER'
   clusterType: string
@@ -157,6 +157,7 @@ export function useAppData() {
     PROJECT_LIST: false,
     AZURECLOUD: true,
     IMPORTSOPSCLUSTER: true,
+    DEPLOYMENTMANAGE: false,
   };
   async function getFeatureFlags(params: { projectCode: string }) {
     const data = await featureFlagsApi(params).catch(() => ({}));
