@@ -71,6 +71,8 @@ import (
 	namespacectrl "github.com/Tencent/bk-bcs/bcs-runtime/bcs-k8s/bcs-network/bcs-ingress-controller/namespacecontroller"
 	"github.com/Tencent/bk-bcs/bcs-runtime/bcs-k8s/bcs-network/bcs-ingress-controller/nodecontroller"
 	portbindingctrl "github.com/Tencent/bk-bcs/bcs-runtime/bcs-k8s/bcs-network/bcs-ingress-controller/portbindingcontroller"
+	hostnetportctrl "github.com/Tencent/bk-bcs/bcs-runtime/bcs-k8s/bcs-network/bcs-ingress-controller/hostnetportcontroller"
+	"github.com/Tencent/bk-bcs/bcs-runtime/bcs-k8s/bcs-network/bcs-ingress-controller/internal/hostnetportpoolcache"
 	portpoolctrl "github.com/Tencent/bk-bcs/bcs-runtime/bcs-k8s/bcs-network/bcs-ingress-controller/portpoolcontroller"
 )
 
@@ -190,40 +192,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	listenerReconciler := listenerctrl.NewListenerReconciler()
-	listenerReconciler.Ctx = ctx
-	listenerReconciler.Client = mgr.GetClient()
-	listenerReconciler.CloudLb = lbClient
-	listenerReconciler.Option = opts
-	listenerReconciler.ListenerEventer = mgr.GetEventRecorderFor("bcs-ingress-controller")
-	if err = listenerReconciler.SetupWithManager(mgr); err != nil {
-		blog.Errorf("unable to create listener reconciler, err %s", err.Error())
-		os.Exit(1)
-	}
-	listenerByPassReconciler := listenerctrl.NewListenerBypassReconciler(ctx, mgr.GetClient(), lbIDCache, opts)
-	if err = listenerByPassReconciler.SetupWithManager(mgr); err != nil {
-		blog.Errorf("unable to create listener-bypass reconciler, err %s", err.Error())
+	if err = setupListenerControllers(ctx, opts, mgr, lbClient, lbIDCache); err != nil {
+		blog.Errorf("%v", err)
 		os.Exit(1)
 	}
 
-	portPoolReconciler := portpoolctrl.NewPortPoolReconciler(ctx, opts, lbClient,
-		mgr.GetClient(), mgr.GetEventRecorderFor("bcs-ingress-controller"), portPoolCache, lbIDCache, lbNameCache)
-	if err = portPoolReconciler.SetupWithManager(mgr); err != nil {
-		blog.Errorf("unable to create port pool reconciler, err %s", err.Error())
-		os.Exit(1)
-	}
-
-	nodeBindCache := portbindingctrl.NewNodePortBindingCache(mgr.GetClient())
-	portBindingReconciler := portbindingctrl.NewPortBindingReconciler(
-		ctx, mgr.GetClient(), portPoolCache, mgr.GetEventRecorderFor("bcs-ingress-controller"), nodeBindCache, opts)
-	if err = portBindingReconciler.SetupWithManager(mgr); err != nil {
-		blog.Errorf("unable to create port binding reconciler, err %s", err.Error())
-		os.Exit(1)
-	}
-	portBindingBypassReconciler := portbindingctrl.NewPortBindingByPassReconciler(
-		ctx, mgr.GetClient(), mgr.GetEventRecorderFor("bcs-ingress-controller"), opts)
-	if err = portBindingBypassReconciler.SetupWithManager(mgr); err != nil {
-		blog.Errorf("unable to create port binding bypass reconciler, err %s", err.Error())
+	nodeBindCache, err := setupPortControllers(ctx, opts, mgr, lbClient, portPoolCache, lbIDCache, lbNameCache)
+	if err != nil {
+		blog.Errorf("%v", err)
 		os.Exit(1)
 	}
 
@@ -240,6 +216,12 @@ func main() {
 			blog.Errorf("unable to create node reconciler, err %s", err.Error())
 			os.Exit(1)
 		}
+	}
+
+	hostnetCache, err := setupHostNetControllers(ctx, mgr)
+	if err != nil {
+		blog.Errorf("%v", err)
+		os.Exit(1)
 	}
 
 	// conflictHandler 避免不同Ingress/PortPool之间出现端口冲突
@@ -284,6 +266,7 @@ func main() {
 		Register(check.NewIngressChecker(mgr.GetClient(), lbClient, lbIDCache, lbNameCache, opts.LBCacheExpiration),
 			check.CheckPerMin).
 		Register(check.NewPortLeakChecker(mgr.GetClient(), portPoolCache, opts.PortLeakThresholdSecs), check.CheckPerMin).
+		Register(check.NewHostNetSegmentChecker(mgr.GetClient(), hostnetCache), check.CheckPerMin).
 		Start()
 	blog.Infof("starting check runner")
 
@@ -460,4 +443,72 @@ func globalLoggingFilter(req *restful.Request, resp *restful.Response, chain *re
 
 	// 继续处理请求
 	chain.ProcessFilter(req, resp)
+}
+
+func setupListenerControllers(ctx context.Context, opts *option.ControllerOption,
+	mgr manager.Manager, lbClient cloud.LoadBalance, lbIDCache *gocache.Cache) error {
+
+	listenerReconciler := listenerctrl.NewListenerReconciler()
+	listenerReconciler.Ctx = ctx
+	listenerReconciler.Client = mgr.GetClient()
+	listenerReconciler.CloudLb = lbClient
+	listenerReconciler.Option = opts
+	listenerReconciler.ListenerEventer = mgr.GetEventRecorderFor("bcs-ingress-controller")
+	if err := listenerReconciler.SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("unable to create listener reconciler, err %w", err)
+	}
+
+	listenerByPassReconciler := listenerctrl.NewListenerBypassReconciler(ctx, mgr.GetClient(), lbIDCache, opts)
+	if err := listenerByPassReconciler.SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("unable to create listener-bypass reconciler, err %w", err)
+	}
+	return nil
+}
+
+func setupPortControllers(ctx context.Context, opts *option.ControllerOption,
+	mgr manager.Manager, lbClient cloud.LoadBalance, portPoolCache *portpoolcache.Cache,
+	lbIDCache, lbNameCache *gocache.Cache) (*portbindingctrl.NodePortBindingCache, error) {
+
+	portPoolReconciler := portpoolctrl.NewPortPoolReconciler(ctx, opts, lbClient,
+		mgr.GetClient(), mgr.GetEventRecorderFor("bcs-ingress-controller"), portPoolCache, lbIDCache, lbNameCache)
+	if err := portPoolReconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("unable to create port pool reconciler, err %w", err)
+	}
+
+	nodeBindCache := portbindingctrl.NewNodePortBindingCache(mgr.GetClient())
+	portBindingReconciler := portbindingctrl.NewPortBindingReconciler(
+		ctx, mgr.GetClient(), portPoolCache, mgr.GetEventRecorderFor("bcs-ingress-controller"), nodeBindCache, opts)
+	if err := portBindingReconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("unable to create port binding reconciler, err %w", err)
+	}
+
+	portBindingBypassReconciler := portbindingctrl.NewPortBindingByPassReconciler(
+		ctx, mgr.GetClient(), mgr.GetEventRecorderFor("bcs-ingress-controller"), opts)
+	if err := portBindingBypassReconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("unable to create port binding bypass reconciler, err %w", err)
+	}
+	return nodeBindCache, nil
+}
+
+func setupHostNetControllers(ctx context.Context,
+	mgr manager.Manager) (*hostnetportpoolcache.HostNetPortPoolCache, error) {
+
+	hostnetCache := hostnetportpoolcache.NewHostNetPortPoolCache()
+	hostnetEventer := mgr.GetEventRecorderFor("bcs-ingress-controller")
+
+	poolReconciler := hostnetportctrl.NewHostNetPortPoolReconciler(ctx, mgr.GetClient(), hostnetCache, hostnetEventer)
+	if err := poolReconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("unable to create hostnet pool reconciler, err %w", err)
+	}
+
+	podReconciler := hostnetportctrl.NewHostNetPodReconciler(ctx, mgr.GetClient(), hostnetCache, hostnetEventer)
+	if err := podReconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("unable to create hostnet pod reconciler, err %w", err)
+	}
+
+	nodeReconciler := hostnetportctrl.NewHostNetNodeReconciler(ctx, mgr.GetClient(), hostnetCache)
+	if err := nodeReconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("unable to create hostnet node reconciler, err %w", err)
+	}
+	return hostnetCache, nil
 }
