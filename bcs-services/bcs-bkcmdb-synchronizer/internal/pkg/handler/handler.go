@@ -23,7 +23,6 @@ import (
 	"time"
 
 	bkcmdbkube "configcenter/src/kube/types" // nolint
-
 	"github.com/Tencent/bk-bcs/bcs-common/common/blog"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/bcsapi"
 	pmp "github.com/Tencent/bk-bcs/bcs-common/pkg/bcsapi/bcsproject"
@@ -880,7 +879,7 @@ func (b *BcsBkcmdbSynchronizerHandler) resolveWorkloadOwner(
 
 	// 如果没有配置 CR 白名单，直接返回
 	if len(crKinds) == 0 {
-		return
+		return resolvedKind, resolvedName
 	}
 
 	// 查询 Workload 的详细信息
@@ -893,12 +892,12 @@ func (b *BcsBkcmdbSynchronizerHandler) resolveWorkloadOwner(
 		if err != nil {
 			blog.Warnf("query deployment %s/%s from storage failed: %s, use %s as fallback",
 				namespaceName, workloadName, err.Error(), workloadKind)
-			return
+			return resolvedKind, resolvedName
 		}
 		if workload == nil {
 			blog.Warnf("deployment %s/%s not found in storage, use %s as fallback",
 				namespaceName, workloadName, workloadKind)
-			return
+			return resolvedKind, resolvedName
 		}
 		if len(workload.Data.OwnerReferences) > 0 {
 			ownerRef = workload.Data.OwnerReferences[0]
@@ -909,12 +908,12 @@ func (b *BcsBkcmdbSynchronizerHandler) resolveWorkloadOwner(
 		if err != nil {
 			blog.Warnf("query statefulset %s/%s from storage failed: %s, use %s as fallback",
 				namespaceName, workloadName, err.Error(), workloadKind)
-			return
+			return resolvedKind, resolvedName
 		}
 		if workload == nil {
 			blog.Warnf("statefulset %s/%s not found in storage, use %s as fallback",
 				namespaceName, workloadName, workloadKind)
-			return
+			return resolvedKind, resolvedName
 		}
 		if len(workload.Data.OwnerReferences) > 0 {
 			ownerRef = workload.Data.OwnerReferences[0]
@@ -922,12 +921,12 @@ func (b *BcsBkcmdbSynchronizerHandler) resolveWorkloadOwner(
 		}
 	default:
 		blog.Warnf("resolveWorkloadOwner: unsupported workload kind %s", workloadKind)
-		return
+		return resolvedKind, resolvedName
 	}
 
 	if !found {
 		blog.Infof("%s %s has no owner, use %s", workloadKind, workloadName, workloadKind)
-		return
+		return resolvedKind, resolvedName
 	}
 
 	// 检查 Owner 是否在 CR 白名单中
@@ -941,7 +940,7 @@ func (b *BcsBkcmdbSynchronizerHandler) resolveWorkloadOwner(
 			workloadKind, workloadName, ownerRef.Kind, workloadKind)
 	}
 
-	return
+	return resolvedKind, resolvedName
 }
 
 // isWorkloadOwnedByCR 检查 workload 的 owner 是否在 CR 白名单中
@@ -3712,31 +3711,16 @@ func (b *BcsBkcmdbSynchronizerHandler) handleCustomResourceCreate(
 
 // handleCustomResourceUpdate handles custom resource update.
 func (b *BcsBkcmdbSynchronizerHandler) handleCustomResourceUpdate(
-	crData CustomResourceData, crKind string, msgHeader *MsgHeader, bkCluster *bkcmdbkube.Cluster, db *gorm.DB) error {
+	crData CustomResourceData, crKind string, msgHeader *MsgHeader,
+	bkCluster *bkcmdbkube.Cluster, db *gorm.DB) error {
 	// Get existing bk workload
 	bkCRs, err := b.Syncer.GetBkWorkloads(bkCluster.BizID, "customResource", &client.PropertyFilter{
 		Condition: "AND",
 		Rules: []client.Rule{
-			{
-				Field:    "name",
-				Operator: "in",
-				Value:    []string{msgHeader.ResourceName},
-			},
-			{
-				Field:    "cluster_uid",
-				Operator: "in",
-				Value:    []string{bkCluster.Uid},
-			},
-			{
-				Field:    "namespace",
-				Operator: "in",
-				Value:    []string{msgHeader.Namespace},
-			},
-			{
-				Field:    "cr_kind",
-				Operator: "in",
-				Value:    []string{crKind},
-			},
+			{Field: "name", Operator: "in", Value: []string{msgHeader.ResourceName}},
+			{Field: "cluster_uid", Operator: "in", Value: []string{bkCluster.Uid}},
+			{Field: "namespace", Operator: "in", Value: []string{msgHeader.Namespace}},
+			{Field: "cr_kind", Operator: "in", Value: []string{crKind}},
 		},
 	}, true, db)
 	if err != nil {
@@ -3812,7 +3796,7 @@ func (b *BcsBkcmdbSynchronizerHandler) handleCustomResourceUpdate(
 
 // handleCustomResourceDelete handles custom resource deletion.
 func (b *BcsBkcmdbSynchronizerHandler) handleCustomResourceDelete(
-	crData CustomResourceData, crKind string, msgHeader *MsgHeader, bkCluster *bkcmdbkube.Cluster, db *gorm.DB) error {
+	_ CustomResourceData, crKind string, msgHeader *MsgHeader, bkCluster *bkcmdbkube.Cluster, db *gorm.DB) error {
 	// Get existing bk workload
 	bkCRs, err := b.Syncer.GetBkWorkloads(bkCluster.BizID, "customResource", &client.PropertyFilter{
 		Condition: "AND",

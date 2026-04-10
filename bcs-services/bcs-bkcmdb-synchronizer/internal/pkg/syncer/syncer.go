@@ -5824,7 +5824,6 @@ func (s *Syncer) deleteAllByClusterNamespace(bkCluster *bkcmdbkube.Cluster) erro
 // syncCustomResources sync custom resources
 // nolint funlen
 func (s *Syncer) syncCustomResources(cluster *cmp.Cluster, bkCluster *bkcmdbkube.Cluster, db *gorm.DB) error {
-	// Check if this cluster is configured for custom resource sync
 	clusterID := cluster.ClusterID
 	crKinds, ok := s.BkcmdbSynchronizerOption.Synchronizer.CustomResourceTypes[clusterID]
 	if !ok || len(crKinds) == 0 {
@@ -5842,11 +5841,7 @@ func (s *Syncer) syncCustomResources(cluster *cmp.Cluster, bkCluster *bkcmdbkube
 	bkNamespaceList, err := s.GetBkNamespaces(bkCluster.BizID, &client.PropertyFilter{
 		Condition: "AND",
 		Rules: []client.Rule{
-			{
-				Field:    "cluster_uid",
-				Operator: "in",
-				Value:    []string{bkCluster.Uid},
-			},
+			{Field: "cluster_uid", Operator: "in", Value: []string{bkCluster.Uid}},
 		},
 	}, true, db)
 	if err != nil {
@@ -5859,197 +5854,244 @@ func (s *Syncer) syncCustomResources(cluster *cmp.Cluster, bkCluster *bkcmdbkube
 		bkNamespaceMap[v.Name] = &(*bkNamespaceList)[k]
 	}
 
-	kind := "customResource"
-
-	// Iterate through each CR kind configured for this cluster
 	for _, crKind := range crKinds {
 		blog.Infof("syncing custom resource kind %s for cluster %s", crKind, clusterID)
+		s.syncCRKind(clusterID, crKind, bkCluster, bkNamespaceList, bkNamespaceMap, storageCli, db)
+	}
+	return nil
+}
 
-		// Query all CRs of this kind from bcs-storage
-		crList := make([]map[string]interface{}, 0)
-		for _, ns := range *bkNamespaceList {
-			var nsCRList []map[string]interface{}
-			filter := map[string]string{
-				"clusterId": clusterID,
-			}
-			err := storageCli.ListCustomResource(crKind, filter, &nsCRList)
-			if err != nil {
-				blog.Errorf("query custom resource %s failed, err: %s", crKind, err.Error())
-				continue
-			}
-			// Filter by namespace since ListCustomResource doesn't filter by namespace
-			for _, cr := range nsCRList {
-				if crNamespace, ok := cr["namespace"].(string); ok && crNamespace == ns.Name {
-					crList = append(crList, cr)
-				}
-			}
-		}
-		blog.Infof("query custom resource %s success, got %d items", crKind, len(crList))
+// syncCRKind syncs one CR kind for a cluster.
+func (s *Syncer) syncCRKind(
+	clusterID, crKind string,
+	bkCluster *bkcmdbkube.Cluster,
+	bkNamespaceList *[]bkcmdbkube.Namespace,
+	bkNamespaceMap map[string]*bkcmdbkube.Namespace,
+	storageCli bcsapi.Storage,
+	db *gorm.DB,
+) {
+	const kind = "customResource"
 
-		// Get existing bk workloads with kind=customResource and crKind filter
-		bkWorkloads, err := s.GetBkWorkloads(bkCluster.BizID, kind, &client.PropertyFilter{
-			Condition: "AND",
-			Rules: []client.Rule{
-				{
-					Field:    "cluster_uid",
-					Operator: "in",
-					Value:    []string{bkCluster.Uid},
-				},
-				{
-					Field:    "cr_kind",
-					Operator: "in",
-					Value:    []string{crKind},
-				},
-			},
-		}, true, db)
-		if err != nil {
-			blog.Errorf("get bk custom resources %s failed, err: %s", crKind, err.Error())
-			continue
-		}
+	// Query all CRs of this kind from bcs-storage
+	crList := s.listCRsFromStorage(clusterID, crKind, bkNamespaceList, storageCli)
+	blog.Infof("query custom resource %s success, got %d items", crKind, len(crList))
 
-		// Convert bkWorkloads to a usable map
-		bkCRMap := make(map[string]map[string]interface{})
-		for _, bw := range *bkWorkloads {
-			if bwMap, ok := bw.(map[string]interface{}); ok {
-				key := ""
-				if ns, _ := bwMap["namespace"].(string); ns != "" {
-					key = ns
-				}
-				if name, _ := bwMap["name"].(string); name != "" {
-					key += "/" + name
-				}
-				if key != "" {
-					bkCRMap[key] = bwMap
-				}
-			}
-		}
-
-		crToAdd := make(map[int64][]client.CreateBcsWorkloadRequestData, 0)
-		crToUpdate := make(map[int64]*client.UpdateBcsWorkloadRequestData, 0)
-		crToDelete := make([]int64, 0)
-
-		// Build CR map from storage data
-		crMap := make(map[string]map[string]interface{})
-		for _, cr := range crList {
-			key := ""
-			if ns, _ := cr["namespace"].(string); ns != "" {
-				key = ns
-			}
-			if name, _ := cr["resourceName"].(string); name != "" {
-				key += "/" + name
-			}
-			if key != "" {
-				crMap[key] = cr
-			}
-		}
-
-		// Diff: find workloads to delete (exist in CMDB but not in storage)
-		for key, bkCR := range bkCRMap {
-			if _, ok := crMap[key]; !ok {
-				if id, ok := bkCR["id"].(float64); ok {
-					crToDelete = append(crToDelete, int64(id))
-					blog.Infof("customResource %s ToDelete: %s", crKind, key)
-				}
-			}
-		}
-
-		// Diff: find workloads to add/update
-		for key, cr := range crMap {
-			bkCR, exists := bkCRMap[key]
-
-			// Extract labels
-			var labels map[string]string
-			if crLabels, ok := cr["labels"].(map[string]interface{}); ok {
-				labels = make(map[string]string)
-				for k, v := range crLabels {
-					if vs, ok := v.(string); ok {
-						labels[k] = vs
-					}
-				}
-			}
-
-			// Extract replicas
-			var replicas int64
-			if crSpec, ok := cr["spec"].(map[string]interface{}); ok {
-				if r, ok := crSpec["replicas"].(float64); ok {
-					replicas = int64(r)
-				}
-			}
-
-			nsName := ""
-			if ns, _ := cr["namespace"].(string); ns != "" {
-				nsName = ns
-			}
-			crName := ""
-			if name, _ := cr["resourceName"].(string); name != "" {
-				crName = name
-			}
-			// Extract apiVersion from cr data
-			crApiVersion := ""
-			if crData, ok := cr["data"].(map[string]interface{}); ok {
-				if apiVersion, ok := crData["apiVersion"].(string); ok {
-					crApiVersion = apiVersion
-				}
-			}
-
-			if !exists {
-				// Add new workload
-				if bkNs, ok := bkNamespaceMap[nsName]; ok {
-					toAddData := &client.CreateBcsWorkloadRequestData{
-						NamespaceID:  &bkNs.ID,
-						Name:         &crName,
-						Labels:       &labels,
-						Replicas:     &replicas,
-						CRKind:       &crKind,
-						CRApiVersion: &crApiVersion,
-					}
-					if _, ok = crToAdd[bkNs.BizID]; ok {
-						crToAdd[bkNs.BizID] = append(crToAdd[bkNs.BizID], *toAddData)
-					} else {
-						crToAdd[bkNs.BizID] = []client.CreateBcsWorkloadRequestData{*toAddData}
-					}
-					blog.Infof("customResource %s ToAdd: %s", crKind, key)
-				}
-			} else {
-				// Compare and update if needed
-				needUpdate := false
-				updateData := &client.UpdateBcsWorkloadRequestData{}
-
-				// Compare labels
-				if labels != nil {
-					if bkLabels, ok := bkCR["labels"].(map[string]interface{}); ok {
-						for k, v := range labels {
-							if bkV, ok := bkLabels[k].(string); !ok || bkV != v {
-								needUpdate = true
-								break
-							}
-						}
-					} else {
-						needUpdate = true
-					}
-				}
-
-				// Compare replicas
-				if !needUpdate {
-					if bkReplicas, ok := bkCR["replicas"].(float64); ok && int64(bkReplicas) != replicas {
-						updateData.Replicas = &replicas
-						needUpdate = true
-					}
-				}
-
-				if needUpdate {
-					if id, ok := bkCR["id"].(float64); ok {
-						crToUpdate[int64(id)] = updateData
-						blog.Infof("customResource %s ToUpdate: %s", crKind, key)
-					}
-				}
-			}
-		}
-
-		s.DeleteBkWorkloads(bkCluster, kind, &crToDelete, db) // nolint not checked
-		s.CreateBkWorkloads(bkCluster, kind, crToAdd, db)
-		s.UpdateBkWorkloads(bkCluster, kind, &crToUpdate, db)
+	// Get existing bk workloads
+	bkWorkloads, err := s.GetBkWorkloads(bkCluster.BizID, kind, &client.PropertyFilter{
+		Condition: "AND",
+		Rules: []client.Rule{
+			{Field: "cluster_uid", Operator: "in", Value: []string{bkCluster.Uid}},
+			{Field: "cr_kind", Operator: "in", Value: []string{crKind}},
+		},
+	}, true, db)
+	if err != nil {
+		blog.Errorf("get bk custom resources %s failed, err: %s", crKind, err.Error())
+		return
 	}
 
-	return nil
+	bkCRMap := buildBkCRMap(bkWorkloads)
+	crMap := buildCRMap(crList)
+
+	crToAdd, crToUpdate, crToDelete := diffCRs(crKind, crMap, bkCRMap, bkNamespaceMap)
+
+	s.DeleteBkWorkloads(bkCluster, kind, &crToDelete, db) // nolint not checked
+	s.CreateBkWorkloads(bkCluster, kind, crToAdd, db)
+	s.UpdateBkWorkloads(bkCluster, kind, &crToUpdate, db)
+}
+
+// listCRsFromStorage queries all CRs of the given kind from bcs-storage, filtered by namespace.
+func (s *Syncer) listCRsFromStorage(
+	clusterID, crKind string,
+	bkNamespaceList *[]bkcmdbkube.Namespace,
+	storageCli bcsapi.Storage,
+) []map[string]interface{} {
+	crList := make([]map[string]interface{}, 0)
+	filter := map[string]string{"clusterId": clusterID}
+	for _, ns := range *bkNamespaceList {
+		var nsCRList []map[string]interface{}
+		if err := storageCli.ListCustomResource(crKind, filter, &nsCRList); err != nil {
+			blog.Errorf("query custom resource %s failed, err: %s", crKind, err.Error())
+			continue
+		}
+		for _, cr := range nsCRList {
+			if crNamespace, ok := cr["namespace"].(string); ok && crNamespace == ns.Name {
+				crList = append(crList, cr)
+			}
+		}
+	}
+	return crList
+}
+
+// buildBkCRMap converts bkWorkloads slice to a "namespace/name" keyed map.
+func buildBkCRMap(bkWorkloads *[]interface{}) map[string]map[string]interface{} {
+	bkCRMap := make(map[string]map[string]interface{})
+	for _, bw := range *bkWorkloads {
+		bwMap, ok := bw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		ns, _ := bwMap["namespace"].(string)
+		name, _ := bwMap["name"].(string)
+		if key := ns + "/" + name; ns != "" && name != "" {
+			bkCRMap[key] = bwMap
+		}
+	}
+	return bkCRMap
+}
+
+// buildCRMap converts storage CR slice to a "namespace/name" keyed map.
+func buildCRMap(crList []map[string]interface{}) map[string]map[string]interface{} {
+	crMap := make(map[string]map[string]interface{})
+	for _, cr := range crList {
+		ns, _ := cr["namespace"].(string)
+		name, _ := cr["resourceName"].(string)
+		if key := ns + "/" + name; ns != "" && name != "" {
+			crMap[key] = cr
+		}
+	}
+	return crMap
+}
+
+// diffCRs computes add/update/delete sets by comparing storage CRs with CMDB CRs.
+func diffCRs(
+	crKind string,
+	crMap, bkCRMap map[string]map[string]interface{},
+	bkNamespaceMap map[string]*bkcmdbkube.Namespace,
+) (map[int64][]client.CreateBcsWorkloadRequestData, map[int64]*client.UpdateBcsWorkloadRequestData, []int64) {
+	crToAdd := make(map[int64][]client.CreateBcsWorkloadRequestData)
+	crToUpdate := make(map[int64]*client.UpdateBcsWorkloadRequestData)
+	crToDelete := make([]int64, 0)
+
+	// Find workloads to delete (exist in CMDB but not in storage)
+	for key, bkCR := range bkCRMap {
+		if _, ok := crMap[key]; !ok {
+			if id, ok := bkCR["id"].(float64); ok {
+				crToDelete = append(crToDelete, int64(id))
+				blog.Infof("customResource %s ToDelete: %s", crKind, key)
+			}
+		}
+	}
+
+	// Find workloads to add or update
+	for key, cr := range crMap {
+		bkCR, exists := bkCRMap[key]
+		if !exists {
+			addCRToMap(crKind, key, cr, bkNamespaceMap, crToAdd)
+		} else {
+			updateCRToMap(crKind, key, cr, bkCR, crToUpdate)
+		}
+	}
+
+	return crToAdd, crToUpdate, crToDelete
+}
+
+// addCRToMap builds a CreateBcsWorkloadRequestData and appends it to crToAdd.
+func addCRToMap(
+	crKind, key string,
+	cr map[string]interface{},
+	bkNamespaceMap map[string]*bkcmdbkube.Namespace,
+	crToAdd map[int64][]client.CreateBcsWorkloadRequestData,
+) {
+	nsName, _ := cr["namespace"].(string)
+	crName, _ := cr["resourceName"].(string)
+	labels := extractCRLabels(cr)
+	replicas := extractCRReplicas(cr)
+	crApiVersion := extractCRApiVersion(cr)
+
+	bkNs, ok := bkNamespaceMap[nsName]
+	if !ok {
+		return
+	}
+	toAddData := client.CreateBcsWorkloadRequestData{
+		NamespaceID:  &bkNs.ID,
+		Name:         &crName,
+		Labels:       &labels,
+		Replicas:     &replicas,
+		CRKind:       &crKind,
+		CRApiVersion: &crApiVersion,
+	}
+	crToAdd[bkNs.BizID] = append(crToAdd[bkNs.BizID], toAddData)
+	blog.Infof("customResource %s ToAdd: %s", crKind, key)
+}
+
+// updateCRToMap compares cr with bkCR and records an update entry if needed.
+func updateCRToMap(
+	crKind, key string,
+	cr, bkCR map[string]interface{},
+	crToUpdate map[int64]*client.UpdateBcsWorkloadRequestData,
+) {
+	labels := extractCRLabels(cr)
+	replicas := extractCRReplicas(cr)
+	needUpdate, updateData := compareCRFields(labels, replicas, bkCR)
+	if !needUpdate {
+		return
+	}
+	if id, ok := bkCR["id"].(float64); ok {
+		crToUpdate[int64(id)] = updateData
+		blog.Infof("customResource %s ToUpdate: %s", crKind, key)
+	}
+}
+
+// compareCRFields compares labels and replicas between storage CR and CMDB CR.
+func compareCRFields(
+	labels map[string]string, replicas int64,
+	bkCR map[string]interface{},
+) (bool, *client.UpdateBcsWorkloadRequestData) {
+	updateData := &client.UpdateBcsWorkloadRequestData{}
+
+	// Compare labels
+	if labels != nil {
+		if bkLabels, ok := bkCR["labels"].(map[string]interface{}); ok {
+			for k, v := range labels {
+				if bkV, ok := bkLabels[k].(string); !ok || bkV != v {
+					return true, updateData
+				}
+			}
+		} else {
+			return true, updateData
+		}
+	}
+
+	// Compare replicas
+	if bkReplicas, ok := bkCR["replicas"].(float64); ok && int64(bkReplicas) != replicas {
+		updateData.Replicas = &replicas
+		return true, updateData
+	}
+
+	return false, updateData
+}
+
+// extractCRLabels extracts labels from a storage CR map.
+func extractCRLabels(cr map[string]interface{}) map[string]string {
+	crLabels, ok := cr["labels"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	labels := make(map[string]string, len(crLabels))
+	for k, v := range crLabels {
+		if vs, ok := v.(string); ok {
+			labels[k] = vs
+		}
+	}
+	return labels
+}
+
+// extractCRReplicas extracts replicas from a storage CR map.
+func extractCRReplicas(cr map[string]interface{}) int64 {
+	if crSpec, ok := cr["spec"].(map[string]interface{}); ok {
+		if r, ok := crSpec["replicas"].(float64); ok {
+			return int64(r)
+		}
+	}
+	return 0
+}
+
+// extractCRApiVersion extracts apiVersion from a storage CR map.
+func extractCRApiVersion(cr map[string]interface{}) string {
+	if crData, ok := cr["data"].(map[string]interface{}); ok {
+		if apiVersion, ok := crData["apiVersion"].(string); ok {
+			return apiVersion
+		}
+	}
+	return ""
 }

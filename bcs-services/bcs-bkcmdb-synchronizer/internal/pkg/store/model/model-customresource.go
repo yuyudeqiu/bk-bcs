@@ -18,13 +18,13 @@ import (
 
 // CustomResource defines the custom resource struct.
 type CustomResource struct {
-	WorkloadBase             `json:",inline" gorm:",inline"`
-	Labels                  MapStringString          `json:"labels,omitempty" gorm:"column:labels;type:json"`
-	Selector                LabelSelector            `json:"selector,omitempty" gorm:"column:selector;type:json"`
-	Replicas                int64                    `json:"replicas,omitempty" gorm:"column:replicas"`
-	MinReadySeconds         int64                    `json:"min_ready_seconds,omitempty" gorm:"column:min_ready_seconds"`
-	StrategyType            DeploymentStrategyType   `json:"strategy_type,omitempty" gorm:"column:strategy_type"`
-	RollingUpdateStrategy   RollingUpdateDeployment   `json:"rolling_update_strategy,omitempty" gorm:"column:rolling_update_strategy;type:json"` //nolint
+	WorkloadBase          `json:",inline" gorm:",inline"`
+	Labels                MapStringString         `json:"labels,omitempty" gorm:"column:labels;type:json"`
+	Selector              LabelSelector           `json:"selector,omitempty" gorm:"column:selector;type:json"`
+	Replicas              int64                   `json:"replicas,omitempty" gorm:"column:replicas"`
+	MinReadySeconds       int64                   `json:"min_ready_seconds,omitempty" gorm:"column:min_ready_seconds"`
+	StrategyType          DeploymentStrategyType  `json:"strategy_type,omitempty" gorm:"column:strategy_type"`
+	RollingUpdateStrategy RollingUpdateDeployment `json:"rolling_update_strategy,omitempty" gorm:"column:rolling_update_strategy;type:json"` //nolint
 	// CRKind is the kind of custom resource (e.g., "CronJob", "Task", etc.)
 	CRKind string `json:"cr_kind,omitempty" gorm:"column:cr_kind;index"`
 	// CRApiVersion is the api version of custom resource (e.g., "batch.tkestack.io/v1")
