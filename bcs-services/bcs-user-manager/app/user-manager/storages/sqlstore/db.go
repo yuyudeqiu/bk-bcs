@@ -16,11 +16,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql
-	"github.com/signalfx/splunk-otel-go/instrumentation/github.com/jinzhu/gorm/splunkgorm"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
+	godbsdk "code.cwoa.net/carlchen2/cw-godb-sdk/core/config"
+	gormsdk "code.cwoa.net/carlchen2/cw-godb-sdk/gorm"
 )
 
 // GCoreDB global DB client
@@ -32,17 +34,62 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 		return fmt.Errorf("core_database config not init")
 	}
 
-	dsn := conf.DSN
-	if dsn == "" {
-		return fmt.Errorf("core_database dsn not configured")
+	var db *gorm.DB
+
+	// 优先使用 DSN 方式（向后兼容）
+	if conf.DSN != "" {
+		db, err := gorm.Open(mysql.Open(conf.DSN), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
+		})
+		if err != nil {
+			return err
+		}
+		sqlDB, err := db.DB()
+		if err != nil {
+			return err
+		}
+		sqlDB.SetConnMaxLifetime(60 * time.Second)
+		sqlDB.SetMaxIdleConns(20)
+		sqlDB.SetMaxOpenConns(20)
+	} else if conf.DatabaseConfig.DBHost != "" {
+		// 使用 SDK 结构化配置
+		var dbType godbsdk.DatabaseType
+		switch conf.DatabaseConfig.DBType {
+		case "mysql":
+			dbType = godbsdk.Mysql
+		case "postgres":
+			dbType = godbsdk.Postgres
+		default:
+			dbType = godbsdk.Mysql
+		}
+
+		dbConfig := godbsdk.Database{
+			Typex:    dbType,
+			Host:     conf.DatabaseConfig.DBHost,
+			Port:     conf.DatabaseConfig.DBPort,
+			User:     conf.DatabaseConfig.DBUser,
+			Password: conf.DatabaseConfig.DBPassword,
+			Name:     conf.DatabaseConfig.DBName,
+		}
+		// 连接池参数使用配置值，若为 0 则使用 SDK 默认值
+		if conf.DatabaseConfig.MaxOpenConns > 0 {
+			dbConfig.MaxOpenConns = conf.DatabaseConfig.MaxOpenConns
+		}
+		if conf.DatabaseConfig.MaxIdleConns > 0 {
+			dbConfig.MaxIdleConns = conf.DatabaseConfig.MaxIdleConns
+		}
+		if conf.DatabaseConfig.ConnMaxLifetimeSecond > 0 {
+			dbConfig.ConnMaxLifetimeSecond = conf.DatabaseConfig.ConnMaxLifetimeSecond
+		}
+
+		client, err := gormsdk.NewClient(dbConfig, logger.Default.LogMode(logger.Silent))
+		if err != nil {
+			return err
+		}
+		db = client.DB()
+	} else {
+		return fmt.Errorf("core_database dsn not configured and database_config is empty")
 	}
-	db, err := splunkgorm.Open("mysql", dsn)
-	if err != nil {
-		return err
-	}
-	db.DB().SetConnMaxLifetime(60 * time.Second)
-	db.DB().SetMaxIdleConns(20)
-	db.DB().SetMaxOpenConns(20)
 
 	GCoreDB = db
 	return nil

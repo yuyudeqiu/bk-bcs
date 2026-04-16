@@ -102,6 +102,7 @@ type UserMgrConfig struct {
 	RedisDSN        string
 	RedisConfig     RedisConfig
 	EnableTokenSync bool
+	DatabaseConfig  options.DatabaseConfig
 	BootStrapUsers  []options.BootStrapUser
 	TKE             options.TKEOptions
 	PeerToken       string

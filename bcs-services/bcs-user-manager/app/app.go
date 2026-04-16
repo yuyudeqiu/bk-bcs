@@ -107,6 +107,15 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	userMgrConfig.Activity = op.Activity
 	userMgrConfig.EnableTokenSync = op.EnableTokenSync
 
+	// MySQL DSN 为空时，使用结构化配置
+	if userMgrConfig.DSN == "" {
+		dbConfig, aErr := parseDatabaseConfig(op.DatabaseConfig)
+		if aErr != nil {
+			return nil, fmt.Errorf("error parsing database config and exit: %s", aErr.Error())
+		}
+		userMgrConfig.DatabaseConfig = dbConfig
+	}
+
 	config.Tke = op.TKE
 	secretID, err := encrypt.DesDecryptFromBase([]byte(config.Tke.SecretID))
 	if err != nil {
@@ -195,5 +204,16 @@ func parseRedisConfig(redisOp options.RedisConfig) (config.RedisConfig, error) {
 	conf.PoolSize = redisOp.PoolSize
 	conf.MinIdleConns = redisOp.MinIdleConns
 	conf.IdleTimeout = redisOp.IdleTimeout
+	return conf, nil
+}
+
+// parseDatabaseConfig parse database option when DSN is empty
+func parseDatabaseConfig(dbOp options.DatabaseConfig) (options.DatabaseConfig, error) {
+	conf := dbOp
+	dbPassword, err := encrypt.DesDecryptFromBase([]byte(dbOp.DBPassword))
+	if err != nil {
+		return conf, fmt.Errorf("error decrypting database config and exit: %s", err.Error())
+	}
+	conf.DBPassword = string(dbPassword)
 	return conf, nil
 }

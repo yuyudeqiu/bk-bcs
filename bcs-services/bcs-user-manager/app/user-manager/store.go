@@ -56,7 +56,7 @@ func SetupStore(conf *config.UserMgrConfig) error {
 
 	// remove user name Constraints, because we will soft delete token on db when user destroy there token,
 	// so we can't use unique index to check user name
-	sqlstore.GCoreDB.Model(&models.BcsUser{}).RemoveIndex("name")
+	sqlstore.GCoreDB.Migrator().DropIndex(&models.BcsUser{}, "name")
 
 	err := createBootstrapUsers(conf.BootStrapUsers)
 	if err != nil {

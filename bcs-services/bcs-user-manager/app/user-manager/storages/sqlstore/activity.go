@@ -44,14 +44,14 @@ func SearchActivities(projectCode, resourceType, activityType string, status mod
 	if endTime.Unix() != 0 {
 		query = query.Where("created_at <= ?", endTime)
 	}
-	count := 0
+	count := int64(0)
 	if err := query.Count(&count).Error; err != nil {
 		return nil, 0, err
 	}
 	if err := query.Offset(offset).Limit(limit).Order("created_at desc").Find(&activities).Error; err != nil {
 		return nil, 0, err
 	}
-	return activities, count, nil
+	return activities, int(count), nil
 }
 
 // CreateActivity create activity

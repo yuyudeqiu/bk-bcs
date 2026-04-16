@@ -270,7 +270,12 @@ func (u *UserManager) migrate() {
 			blog.Errorf("get migrations files error, %s", err.Error())
 			return
 		}
-		if err := u.IamPermClient.Migrate(sqlstore.GCoreDB.DB(), d, "bk_iam_migrations",
+		sqlDB, err := sqlstore.GCoreDB.DB()
+		if err != nil {
+			blog.Errorf("get db error: %s", err.Error())
+			return
+		}
+		if err := u.IamPermClient.Migrate(sqlDB, d, "bk_iam_migrations",
 			5*time.Minute, tempVar); err != nil {
 			if strings.Contains(err.Error(), "no change") {
 				blog.Info("iam migration success")

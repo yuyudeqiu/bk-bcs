@@ -36,6 +36,7 @@ type UserManagerOptions struct {
 	RedisDSN        string          `json:"redis_dsn" value:"" usage:"dsn for connect to redis"`
 	RedisConfig     RedisConfig     `json:"redis_config" value:"" usage:"redis config for connect to redis"`
 	DSN             string          `json:"mysql_dsn" value:"" usage:"dsn for connect to mysql"`
+	DatabaseConfig  DatabaseConfig  `json:"database_config" value:"" usage:"database config for connect to mysql when dsn is empty"`
 	BootStrapUsers  []BootStrapUser `json:"bootstrap_users"`
 	TKE             TKEOptions      `json:"tke"`
 	PeerToken       string          `json:"peer_token" value:"" usage:"peer token to authorize with each other, only used to websocket peer"`
@@ -174,4 +175,19 @@ type RedisConfig struct {
 	PoolSize     int    `json:"pool_size" usage:"Redis pool size" mapstructure:"pool_size" yaml:"pool_size"`
 	MinIdleConns int    `json:"min_idle_conns" usage:"Redis min connect" mapstructure:"min_idle_conns" yaml:"min_idle_conns"`
 	IdleTimeout  int    `json:"idle_timeout" usage:"Redis idle timeout" mapstructure:"idle_timeout" yaml:"idle_timeout"`
+}
+
+// DatabaseConfig 数据库配置，DSN 为空时使用
+// NOCC:golint/lll(设计如此:)
+// nolint
+type DatabaseConfig struct {
+	DBType               string `json:"db_type" usage:"database type: mysql, postgres" mapstructure:"db_type" yaml:"db_type"`
+	DBHost               string `json:"db_host" usage:"database host" mapstructure:"db_host" yaml:"db_host"`
+	DBPort               int    `json:"db_port" usage:"database port" mapstructure:"db_port" yaml:"db_port"`
+	DBUser               string `json:"db_user" usage:"database user" mapstructure:"db_user" yaml:"db_user"`
+	DBPassword           string `json:"db_password" usage:"database password" mapstructure:"db_password" yaml:"db_password"`
+	DBName               string `json:"db_name" usage:"database name" mapstructure:"db_name" yaml:"db_name"`
+	MaxOpenConns         int    `json:"max_open_conns" usage:"database max open conns" mapstructure:"max_open_conns" yaml:"max_open_conns"`
+	MaxIdleConns         int    `json:"max_idle_conns" usage:"database max idle conns" mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
+	ConnMaxLifetimeSecond int   `json:"conn_max_lifetime_second" usage:"database conn max lifetime (seconds)" mapstructure:"conn_max_lifetime_second" yaml:"conn_max_lifetime_second"`
 }
