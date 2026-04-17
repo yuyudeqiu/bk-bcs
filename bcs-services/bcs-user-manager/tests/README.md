@@ -41,9 +41,10 @@ tests/
 │   ├── dm.go           # 达梦初始化
 │   └── gaussdb.go      # OpenGauss 初始化
 └── sqlstore/
-    ├── mysql_test.go    # MySQL 测试 (默认)
-    ├── dm_test.go       # 达梦测试
-    └── gaussdb_test.go  # OpenGauss 测试
+    ├── common.go       # 共享测试逻辑：storeSet、describeStoreTests()
+    ├── mysql_test.go    # MySQL 测试入口 (默认)
+    ├── dm_test.go       # 达梦测试入口
+    └── gaussdb_test.go  # OpenGauss 测试入口
 ```
 
 ### 3.2 测试框架 (tests/framework/)
