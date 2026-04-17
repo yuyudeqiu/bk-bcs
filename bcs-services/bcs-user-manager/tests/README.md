@@ -41,10 +41,13 @@ tests/
 │   ├── dm.go           # 达梦初始化
 │   └── gaussdb.go      # OpenGauss 初始化
 └── sqlstore/
-    ├── common.go       # 共享测试逻辑：storeSet、describeStoreTests()
-    ├── mysql_test.go    # MySQL 测试入口 (默认)
-    ├── dm_test.go       # 达梦测试入口
-    └── gaussdb_test.go  # OpenGauss 测试入口
+    ├── common.go       # storeSet 定义、describeStoreTests() 入口
+    ├── common_token.go # Token Store 测试
+    ├── common_user.go  # User Store 测试（待添加）
+    ├── common_cluster.go  # Cluster Store 测试（待添加）
+    ├── mysql_test.go   # MySQL 测试入口 (默认)
+    ├── dm_test.go      # 达梦测试入口
+    └── gaussdb_test.go # OpenGauss 测试入口
 ```
 
 ### 3.2 测试框架 (tests/framework/)
@@ -139,18 +142,29 @@ go test -tags=gaussdb ./tests/sqlstore/... -v -args -ginkgo.v
 | `dm` | 达梦测试 | `go test -tags=dm ./tests/...` |
 | `gaussdb` | OpenGauss 测试 | `go test -tags=gaussdb ./tests/...` |
 
-### 7.2 扩展测试到其他 Store
+### 7.2 添加新测试
 
-参考 `tests/sqlstore/mysql_test.go` 的模式，创建新的测试文件：
+测试逻辑按 Store 拆分到 `common_*.go` 文件中：
+
+1. 创建 `tests/sqlstore/common_xxx.go`，定义 `describeXxxTests(s *storeSet)` 函数
+2. 在 `common.go` 的 `describeStoreTests()` 中调用 `describeXxxTests(s)`
+3. 在对应 `common_xxx.go` 中添加测试用例
 
 ```go
-// mysql_test.go
-//go:build !dm && !gaussdb
-package sqlstore_test
+// tests/sqlstore/common_user.go
+func describeUserTests(s *storeSet) {
+    Describe("User Store 集成测试", func() {
+        It("创建用户", func() { ... })
+    })
+}
+```
 
-var _ = Describe("Token Store MySQL 集成测试", func() {
-    // 测试用例
-})
+```go
+// tests/sqlstore/common.go
+func describeStoreTests(s *storeSet) {
+    describeTokenTests(s)
+    describeUserTests(s)  // 新增
+}
 ```
 
 ## 8. 注意事项
