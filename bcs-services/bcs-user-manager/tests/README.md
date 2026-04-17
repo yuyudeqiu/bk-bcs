@@ -338,3 +338,41 @@ SUCCESS! -- 68 Passed | 0 Failed | 0 Pending | 0 Skipped
 --- PASS: TestTokenStoreMySQL (0.61s)
 PASS
 ```
+
+### 9.2 详细模式 (-v -args -ginkgo.v)
+
+```
+Running Suite: Token Store MySQL Integration Suite
+======================================================================
+Running: go test -v ./tests/sqlstore/... -args -ginkgo.v
+Rand Seed: 1776392475
+Will run 68 of 68 specs
+
+Token Store MySQL 集成测试环境已就绪
+
+  [32m•[0m [32m•[0m [32m•[0m ...（68 个点）
+
+  Token Store MySQL 集成测试
+    GetTokenByCondition
+      [32m✓[0m 按名称查询 Token (0.001s)
+      [32m✓[0m 查询不存在的 Token 返回 nil (0.001s)
+    CreateToken
+      [32m✓[0m 创建新 Token (0.001s)
+    ...
+    TokenNotify Store 集成测试
+      [32m✓[0m 创建 Token 通知记录 (0.001s)
+      [32m✓[0m 按 Token 查询通知记录 (0.001s)
+      [32m✓[0m 查询不存在的 Token 返回空列表 (0.001s)
+      [32m✓[0m 删除 Token 通知记录 (0.001s)
+    TkeCidr Store 集成测试
+      [32m✓[0m 创建 TkeCidr (0.001s)
+      ...
+    User Store 集成测试
+      [32m✓[0m 创建用户 (0.001s)
+      [32m✓[0m 按名称查询用户 (0.001s)
+      [32m✓[0m 查询不存在的用户返回 nil (0.001s)
+      [32m✓[0m 更新用户信息 (0.001s)
+
+  Ran 68 of 68 Specs in 0.607 seconds
+  SUCCESS! -- 68 Passed | 0 Failed | 0 Pending | 0 Skipped
+```
