@@ -22,7 +22,7 @@ func TestTokenStoreDM(t *testing.T) {
 var db *gorm.DB
 
 var _ = BeforeSuite(func() {
-	db = framework.MustInitDM()
+	db = framework.MustInitDM("")
 
 	err := framework.InitTables(db)
 	Expect(err).ShouldNot(HaveOccurred())
