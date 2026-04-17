@@ -30,7 +30,11 @@ func InitDM(dbName string) (*gorm.DB, error) {
 }
 
 // MustInitDM 初始化达梦，失败时 panic
+// dbName 为空时使用 DMConfig.DBName 的默认值
 func MustInitDM(dbName string) *gorm.DB {
+	if dbName == "" {
+		dbName = DMConfig.DBName
+	}
 	db, err := InitDM(dbName)
 	if err != nil {
 		panic(fmt.Errorf("初始化达梦失败: %w", err))

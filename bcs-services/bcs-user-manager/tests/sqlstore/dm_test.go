@@ -22,11 +22,9 @@ func TestTokenStoreDM(t *testing.T) {
 var db *gorm.DB
 
 var _ = BeforeSuite(func() {
-	var err error
-	db, err = framework.InitDM("bcs_user_test")
-	Expect(err).ShouldNot(HaveOccurred())
+	db = framework.MustInitDM()
 
-	err = framework.InitTables(db)
+	err := framework.InitTables(db)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// 设置全局 DB
