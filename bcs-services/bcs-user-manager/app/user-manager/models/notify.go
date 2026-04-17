@@ -58,8 +58,8 @@ const (
 type BcsTokenNotify struct {
 	ID         uint        `json:"id" gorm:"primary_key"`
 	Token      string      `json:"token" gorm:"size:64;index"`
-	NotifyType NotifyType  `json:"notify_type" gorm:"type:tinyint(1);comment:'0:email,1:rtx'"`
-	Phase      NotifyPhase `json:"phase" gorm:"type:tinyint(1);comment:'1:overdue,2:day,3:week,4:month'"`
+	NotifyType NotifyType  `json:"notify_type" gorm:"comment:'0:email,1:rtx'"`
+	Phase      NotifyPhase `json:"phase" gorm:"comment:'1:overdue,2:day,3:week,4:month'"`
 	Result     bool        `json:"result"`
 	Message    string      `json:"message" gorm:"size:255"`
 	RequestID  string      `json:"request_id" gorm:"size:64"`
