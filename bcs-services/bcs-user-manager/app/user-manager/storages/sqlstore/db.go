@@ -20,13 +20,18 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 	godbsdk "code.cwoa.net/carlchen2/cw-godb-sdk/core/config"
 	gormsdk "code.cwoa.net/carlchen2/cw-godb-sdk/gorm"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 )
 
 // GCoreDB global DB client
 var GCoreDB *gorm.DB
+
+// SetGCoreDB 设置全局 DB（用于测试）
+func SetGCoreDB(db *gorm.DB) {
+	GCoreDB = db
+}
 
 // InitCoreDatabase set DB client
 func InitCoreDatabase(conf *config.UserMgrConfig) error {
@@ -59,6 +64,8 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 			dbType = godbsdk.Mysql
 		case "postgres":
 			dbType = godbsdk.Postgres
+		case "dameng":
+			dbType = godbsdk.Dameng
 		default:
 			dbType = godbsdk.Mysql
 		}
