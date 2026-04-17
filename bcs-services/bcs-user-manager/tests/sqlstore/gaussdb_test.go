@@ -45,6 +45,7 @@ var _ = Describe("Token Store", func() {
 	BeforeEach(func() {
 		s.db = db
 		s.tokenStore = sqlstore.NewTokenStore(db, nil)
+		s.tokenNotifyStore = sqlstore.NewTokenNotifyStore(db)
 	})
 
 	describeStoreTests(&s)
