@@ -29,10 +29,11 @@ func describeRegisterTokenTests() {
 
 				err = sqlstore.CreateRegisterToken(clusterID)
 				Expect(err).ShouldNot(BeNil())
-				// MySQL: "Duplicate entry", DM: "违反表...唯一性约束"
+				// MySQL: "Duplicate entry", DM: "违反表...唯一性约束", GaussDB: "duplicate key value violates unique constraint"
 				Expect(err.Error()).Should(SatisfyAny(
 					ContainSubstring("Duplicate entry"),
 					ContainSubstring("唯一性约束"),
+					ContainSubstring("violates unique constraint"),
 				))
 			})
 		})
