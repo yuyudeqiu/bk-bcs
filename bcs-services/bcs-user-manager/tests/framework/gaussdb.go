@@ -8,12 +8,12 @@ import (
 
 // GaussDBConfig OpenGauss 测试配置
 var GaussDBConfig = DatabaseConfig{
-	DBType:    "postgres",
+	DBType:     "postgres",
 	DBHost:     "localhost",
 	DBPort:     5433,
 	DBUser:     "gaussdb",
 	DBPassword: "openGauss@123",
-	DBName:     "bcs_user_test",
+	DBName:     "gorm_test",
 }
 
 // InitGaussDB 初始化 OpenGauss 测试数据库
