@@ -32,12 +32,12 @@ var TableNames = []string{
 
 // DatabaseConfig 数据库连接配置
 type DatabaseConfig struct {
-	DBType    string
-	DBHost    string
-	DBPort    int
-	DBUser    string
+	DBType     string
+	DBHost     string
+	DBPort     int
+	DBUser     string
 	DBPassword string
-	DBName    string
+	DBName     string
 }
 
 // NewDBClient 创建数据库客户端
@@ -46,8 +46,8 @@ func NewDBClient(cfg DatabaseConfig) (*gorm.DB, error) {
 	switch cfg.DBType {
 	case "mysql":
 		dbType = godbsdk.Mysql
-	case "postgres":
-		dbType = godbsdk.Postgres
+	case "gaussdb":
+		dbType = godbsdk.Gaussdb
 	case "dameng":
 		dbType = godbsdk.Dameng
 	default:

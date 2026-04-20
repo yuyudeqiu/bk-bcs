@@ -8,7 +8,7 @@ import (
 
 // GaussDBConfig OpenGauss 测试配置
 var GaussDBConfig = DatabaseConfig{
-	DBType:     "postgres",
+	DBType:     "gaussdb",
 	DBHost:     "localhost",
 	DBPort:     5433,
 	DBUser:     "gaussdb",
@@ -19,7 +19,9 @@ var GaussDBConfig = DatabaseConfig{
 // InitGaussDB 初始化 OpenGauss 测试数据库
 func InitGaussDB(dbName string) (*gorm.DB, error) {
 	cfg := GaussDBConfig
-	cfg.DBName = dbName
+	if dbName != "" {
+		cfg.DBName = dbName
+	}
 
 	db, err := NewDBClient(cfg)
 	if err != nil {

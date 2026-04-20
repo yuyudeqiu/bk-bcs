@@ -22,11 +22,8 @@ func TestTokenStoreGaussDB(t *testing.T) {
 var db *gorm.DB
 
 var _ = BeforeSuite(func() {
-	var err error
-	db, err = framework.InitGaussDB("bcs_user_test")
-	Expect(err).ShouldNot(HaveOccurred())
-
-	err = framework.InitTables(db)
+	db = framework.MustInitGaussDB("")
+	err := framework.InitTables(db)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// 设置全局 DB
