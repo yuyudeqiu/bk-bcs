@@ -63,6 +63,11 @@ func init() {
 		blog.Warnf("parse custom resource types from env failed: %s, using default", err)
 	}
 
+	// Parse and set sql log level from environment variable
+	if err := common.SetSqlLogLevelFromEnv(BkcmdbSynchronizerOption); err != nil {
+		blog.Warnf("parse sql log level from env failed: %s, using default", err)
+	}
+
 	if err := common.DecryptCMOption(BkcmdbSynchronizerOption); err != nil {
 		blog.Fatalf("load config failed, err: %s", err.Error())
 	}

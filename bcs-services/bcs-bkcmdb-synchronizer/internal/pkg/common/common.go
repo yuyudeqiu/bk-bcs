@@ -19,6 +19,7 @@ import (
 	"hash/fnv"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,6 +133,21 @@ func SetCustomResourceTypesFromEnv(opt *option.BkcmdbSynchronizerOption) error {
 		return fmt.Errorf("unmarshal custom resource types failed: %w", err)
 	}
 	opt.Synchronizer.CustomResourceTypes = result
+	return nil
+}
+
+// SetSqlLogLevelFromEnv parses synchronizer_sqlLogLevel environment variable
+// and sets it to the option.
+func SetSqlLogLevelFromEnv(opt *option.BkcmdbSynchronizerOption) error {
+	envValue := os.Getenv("synchronizer_sqlLogLevel")
+	if envValue == "" {
+		return nil
+	}
+	logLevel, err := strconv.Atoi(envValue)
+	if err != nil {
+		return fmt.Errorf("parse sql log level failed: %w", err)
+	}
+	opt.Synchronizer.SqlLogLevel = logLevel
 	return nil
 }
 

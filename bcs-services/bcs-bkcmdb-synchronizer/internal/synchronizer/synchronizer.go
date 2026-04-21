@@ -736,7 +736,7 @@ func (s *Synchronizer) syncStoreHandler(podIndex int, whiteList, blackList []str
 func (s *Synchronizer) syncStorage(cluster *cmp.Cluster, bkCluster *bkcmdbkube.Cluster, force bool) {
 	path := "/data/bcs/bcs-bkcmdb-synchronizer/db/" + bkCluster.Uid + ".db"
 
-	db := sqlite.Open(path)
+	db := sqlite.Open(path, s.BkcmdbSynchronizerOption.Synchronizer.SqlLogLevel)
 	if db == nil {
 		blog.Errorf("open db failed, path: %s", path)
 	}

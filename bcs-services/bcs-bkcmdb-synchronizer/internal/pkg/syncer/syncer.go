@@ -83,6 +83,9 @@ func (s *Syncer) Init() {
 	}
 	bkBizID = s.BkcmdbSynchronizerOption.Synchronizer.BkBizID
 	hostID = s.BkcmdbSynchronizerOption.Synchronizer.HostID
+	if s.BkcmdbSynchronizerOption.Synchronizer.SqlLogLevel == 0 {
+		s.BkcmdbSynchronizerOption.Synchronizer.SqlLogLevel = 2
+	}
 }
 
 // init Tls Config
@@ -144,7 +147,7 @@ func (s *Syncer) SyncCluster(cluster *cmp.Cluster) error {
 		clusterType = "SHARE_CLUSTER"
 	}
 	path := "/data/bcs/bcs-bkcmdb-synchronizer/db/" + cluster.ClusterID + ".db"
-	db := sqlite.Open(path)
+	db := sqlite.Open(path, s.BkcmdbSynchronizerOption.Synchronizer.SqlLogLevel)
 	if db == nil {
 		blog.Errorf("open db failed, path: %s", path)
 		return fmt.Errorf("open db failed, path: %s", path)
@@ -2096,7 +2099,7 @@ func (s *Syncer) syncPodsCheck(podMap map[string]*storage.Pod, bkPodMap map[stri
 func (s *Syncer) SyncStore(bkCluster *bkcmdbkube.Cluster, force bool) error {
 	path := "/data/bcs/bcs-bkcmdb-synchronizer/db/" + bkCluster.Uid + ".db"
 
-	db := sqlite.Open(path)
+	db := sqlite.Open(path, s.BkcmdbSynchronizerOption.Synchronizer.SqlLogLevel)
 	if db == nil {
 		blog.Errorf("open db failed, path: %s", path)
 		return fmt.Errorf("open db failed, path: %s", path)

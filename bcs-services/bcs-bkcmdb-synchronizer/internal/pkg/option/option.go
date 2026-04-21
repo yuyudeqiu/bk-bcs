@@ -41,6 +41,8 @@ type SynchronizerConfig struct {
 	// Only clusters configured in this map will have custom resources synced
 	// Example: {"cluster-id-1": ["BkApp", "CronJob"], "cluster-id-2": ["BkApp"]}
 	CustomResourceTypes map[string][]string `json:"customResourceTypes"`
+	// SqlLogLevel define sql log level
+	SqlLogLevel int `json:"sqlLogLevel"`
 }
 
 // CustomResourceType defines parsed custom resource type configuration.
