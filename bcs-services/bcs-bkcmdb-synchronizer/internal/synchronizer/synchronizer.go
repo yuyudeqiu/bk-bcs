@@ -240,8 +240,7 @@ func (s *Synchronizer) Run() {
 		blackList = strings.Split(s.BkcmdbSynchronizerOption.Synchronizer.BlackList, ",")
 	}
 
-	blog.Infof("whiteList: %v, len: %d", whiteList, len(whiteList))
-	blog.Infof("blackList: %v, len: %d", blackList, len(blackList))
+	blog.Infof("whiteList: %v, len: %d; blackList: %v, len: %d", whiteList, len(whiteList), blackList, len(blackList))
 
 	hostname, err := os.Hostname()
 	if err != nil {

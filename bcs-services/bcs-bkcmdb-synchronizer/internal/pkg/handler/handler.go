@@ -292,8 +292,7 @@ func (b *BcsBkcmdbSynchronizerHandler) handleCluster(
 	}
 
 	// 打印白名单和黑名单信息
-	blog.Infof("whiteList: %v, len: %d", whiteList, len(whiteList))
-	blog.Infof("blackList: %v, len: %d", blackList, len(blackList))
+	blog.Infof("whiteList: %v, len: %d; blackList: %v, len: %d", whiteList, len(whiteList), blackList, len(blackList))
 
 	// 遍历所有集群
 	for _, cluster := range clusters {

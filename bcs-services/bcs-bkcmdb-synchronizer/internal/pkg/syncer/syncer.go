@@ -157,8 +157,6 @@ func (s *Syncer) SyncCluster(cluster *cmp.Cluster) error {
 				clusterBkBizID, err = strconv.ParseInt(cluster.BusinessID, 10, 64)
 				if err != nil {
 					blog.Errorf("An error occurred: %s\n", err)
-				} else {
-					blog.Infof("Successfully converted string to int64: %d\n", clusterBkBizID)
 				}
 			} else {
 				clusterBkBizID = bkBizID
@@ -3016,8 +3014,6 @@ func (s *Syncer) GetBkCluster(cluster *cmp.Cluster, db *gorm.DB, withDB bool) (*
 		bizid, err := strconv.ParseInt(cluster.BusinessID, 10, 64)
 		if err != nil {
 			blog.Errorf("An error occurred: %s\n", err)
-		} else {
-			blog.Infof("Successfully converted string to int64: %d\n", bizid)
 		}
 		clusterBkBizID = bizid
 	} else {
