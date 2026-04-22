@@ -2056,7 +2056,8 @@ func (s *Syncer) syncPodsCheck(podMap map[string]*storage.Pod, bkPodMap map[stri
 						Containers: &containers,
 						Operator:   &operator,
 					})
-				blog.Infof("podToAdd: %s+%s+%s", bkCluster.Uid, v.Data.Namespace, v.Data.Name)
+				blog.Infof("podToAdd, clusterUid: %s, bizID: %d, clusterID: %d, namespaceID: %d, namespace: %s, workloadKind: %s, workloadName: %s, workloadID: %d, podName: %s, podIP: %s",
+					bkCluster.Uid, bkNsMap[v.Data.Namespace].BizID, bkCluster.ID, bkNsMap[v.Data.Namespace].ID, v.Data.Namespace, workloadKind, workloadName, workloadID, v.Data.Name, v.Data.Status.PodIP)
 			} else {
 				podToAdd[bkNsMap[v.Data.Namespace].BizID] = []client.CreateBcsPodRequestDataPod{
 					client.CreateBcsPodRequestDataPod{
@@ -2083,7 +2084,8 @@ func (s *Syncer) syncPodsCheck(podMap map[string]*storage.Pod, bkPodMap map[stri
 						Operator:   &operator,
 					},
 				}
-				blog.Infof("podToAdd: %s+%s+%s", bkCluster.Uid, v.Data.Namespace, v.Data.Name)
+				blog.Infof("podToAdd, clusterUid: %s, bizID: %d, clusterID: %d, namespaceID: %d, namespace: %s, workloadKind: %s, workloadName: %s, workloadID: %d, podName: %s, podIP: %s",
+					bkCluster.Uid, bkNsMap[v.Data.Namespace].BizID, bkCluster.ID, bkNsMap[v.Data.Namespace].ID, v.Data.Namespace, workloadKind, workloadName, workloadID, v.Data.Name, v.Data.Status.PodIP)
 			}
 
 		} else {

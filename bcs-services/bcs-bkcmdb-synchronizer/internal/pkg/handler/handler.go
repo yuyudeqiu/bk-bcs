@@ -1402,7 +1402,8 @@ func (b *BcsBkcmdbSynchronizerHandler) handlePodCreate(pod *corev1.Pod, bkCluste
 		},
 	}, nil)
 
-	blog.Infof("podToAdd: %s+%s+%s", bkCluster.Uid, &pod.Namespace, &pod.Name)
+	blog.Infof("podToAdd, clusterUid: %s, bizID: %d, clusterID: %d, namespaceID: %d, namespace: %s, workloadKind: %s, workloadName: %s, workloadID: %d, podName: %s, podIP: %s",
+		bkCluster.Uid, bkNamespace.BizID, bkCluster.ID, bkNamespace.ID, pod.Namespace, workloadKind, workloadName, workloadID, pod.Name, pod.Status.PodIP)
 
 	return nil
 }
@@ -1822,7 +1823,8 @@ func (b *BcsBkcmdbSynchronizerHandler) handlePodsCreate(podsCreate map[string]*c
 				},
 			},
 		}, db)
-		blog.Infof("podToAdd: %s+%s+%s", bkCluster.Uid, pod.Namespace, pod.Name)
+		blog.Infof("podToAdd, clusterUid: %s, bizID: %d, clusterID: %d, namespaceID: %d, namespace: %s, workloadKind: %s, workloadName: %s, workloadID: %d, podName: %s, podIP: %s",
+			bkCluster.Uid, bkNamespace.BizID, bkCluster.ID, bkNamespace.ID, pod.Namespace, workloadKind, workloadName, workloadID, pod.Name, pod.Status.PodIP)
 	}
 
 	return nil
