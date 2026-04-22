@@ -30,7 +30,6 @@ import (
 	"github.com/parnurzeal/gorequest"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-bkcmdb-synchronizer/internal/pkg/client"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-bkcmdb-synchronizer/internal/pkg/common"
@@ -964,7 +963,7 @@ func (c *cmdbClient) GetBcsNamespace(
 		return nil, ErrServerNotInit
 	}
 	if withDB && db != nil {
-		query := db.Session(&gorm.Session{NewDB: true, Logger: db.Logger.LogMode(logger.Info)})
+		query := db.Session(&gorm.Session{NewDB: true})
 		for _, rule := range request.Filter.Rules {
 			if request.Filter.Condition == And {
 				query = query.Where(fmt.Sprintf("%s %s ?", rule.Field, rule.Operator), rule.Value)
@@ -974,7 +973,7 @@ func (c *cmdbClient) GetBcsNamespace(
 			}
 		}
 		var ns []model.Namespace
-		if err := query.Debug().Find(&ns).Error; err != nil {
+		if err := query.Find(&ns).Error; err != nil {
 			blog.Errorf("query namespace withDB failed: %v", err)
 		} else {
 			if namespaceMarshal, err := json.Marshal(ns); err != nil {
@@ -1263,7 +1262,7 @@ func (c *cmdbClient) GetBcsWorkload(
 	}
 
 	if withDB && db != nil {
-		query := db.Session(&gorm.Session{NewDB: true, Logger: db.Logger.LogMode(logger.Info)})
+		query := db.Session(&gorm.Session{NewDB: true})
 		for _, rule := range request.Filter.Rules {
 			if request.Filter.Condition == And {
 				query = query.Where(fmt.Sprintf("%s %s ?", rule.Field, rule.Operator), rule.Value)
@@ -1276,7 +1275,7 @@ func (c *cmdbClient) GetBcsWorkload(
 		switch request.Kind {
 		case Deployment:
 			var deployment []model.Deployment
-			if err := query.Debug().Find(&deployment).Error; err != nil {
+			if err := query.Find(&deployment).Error; err != nil {
 				blog.Errorf("query deployment withDB failed: %v", err)
 			} else {
 				if deploymentMarshal, errM := json.Marshal(deployment); errM != nil {
@@ -1293,7 +1292,7 @@ func (c *cmdbClient) GetBcsWorkload(
 			}
 		case StatefulSet:
 			var statefulSet []model.StatefulSet
-			if err := query.Debug().Find(&statefulSet).Error; err != nil {
+			if err := query.Find(&statefulSet).Error; err != nil {
 				blog.Errorf("query statefulSet withDB failed: %v", err)
 			} else {
 				if statefulSetMarshal, errM := json.Marshal(statefulSet); errM != nil {
@@ -1310,7 +1309,7 @@ func (c *cmdbClient) GetBcsWorkload(
 			}
 		case DaemonSet:
 			var daemonSet []model.DaemonSet
-			if err := query.Debug().Find(&daemonSet).Error; err != nil {
+			if err := query.Find(&daemonSet).Error; err != nil {
 				blog.Errorf("query daemonSet withDB failed: %v", err)
 			} else {
 				if daemonSetMarshal, errM := json.Marshal(daemonSet); errM != nil {
@@ -1327,7 +1326,7 @@ func (c *cmdbClient) GetBcsWorkload(
 			}
 		case GameDeployment:
 			var gameDeployment []model.GameDeployment
-			if err := query.Debug().Find(&gameDeployment).Error; err != nil {
+			if err := query.Find(&gameDeployment).Error; err != nil {
 				blog.Errorf("query gameDeployment withDB failed: %v", err)
 			} else {
 				if gameDeploymentMarshal, errM := json.Marshal(gameDeployment); errM != nil {
@@ -1344,7 +1343,7 @@ func (c *cmdbClient) GetBcsWorkload(
 			}
 		case GameStatefulSet:
 			var gameStatefulSet []model.GameStatefulSet
-			if err := query.Debug().Find(&gameStatefulSet).Error; err != nil {
+			if err := query.Find(&gameStatefulSet).Error; err != nil {
 				blog.Errorf("query gameStatefulSet withDB failed: %v", err)
 			} else {
 				if gameStatefulSetMarshal, errM := json.Marshal(gameStatefulSet); errM != nil {
@@ -1361,7 +1360,7 @@ func (c *cmdbClient) GetBcsWorkload(
 			}
 		case Pods:
 			var podsWorkload []model.PodsWorkload
-			if err := query.Debug().Find(&podsWorkload).Error; err != nil {
+			if err := query.Find(&podsWorkload).Error; err != nil {
 				blog.Errorf("query podsWorkload withDB failed: %v", err)
 			} else {
 				if podsWorkloadMarshal, errM := json.Marshal(podsWorkload); errM != nil {
@@ -1378,7 +1377,7 @@ func (c *cmdbClient) GetBcsWorkload(
 			}
 		case CustomResource:
 			var customResource []model.CustomResource
-			if err := query.Debug().Find(&customResource).Error; err != nil {
+			if err := query.Find(&customResource).Error; err != nil {
 				blog.Errorf("query customResource withDB failed: %v", err)
 			} else {
 				if customResourceMarshal, errM := json.Marshal(customResource); errM != nil {
@@ -1909,7 +1908,7 @@ func (c *cmdbClient) GetBcsNode(
 		return nil, ErrServerNotInit
 	}
 	if withDB && db != nil {
-		query := db.Session(&gorm.Session{NewDB: true, Logger: db.Logger.LogMode(logger.Info)})
+		query := db.Session(&gorm.Session{NewDB: true})
 		for _, rule := range request.Filter.Rules {
 			if request.Filter.Condition == And {
 				query = query.Where(fmt.Sprintf("%s %s ?", rule.Field, rule.Operator), rule.Value)
@@ -1919,7 +1918,7 @@ func (c *cmdbClient) GetBcsNode(
 			}
 		}
 		var node []model.Node
-		if err := query.Debug().Find(&node).Error; err != nil {
+		if err := query.Find(&node).Error; err != nil {
 			blog.Errorf("query node withDB failed: %v", err)
 		} else {
 			if nodeMarshal, errM := json.Marshal(node); errM != nil {
@@ -2212,7 +2211,7 @@ func (c *cmdbClient) GetBcsPod(request *client.GetBcsPodRequest, db *gorm.DB, wi
 	}
 
 	if withDB && db != nil {
-		query := db.Session(&gorm.Session{NewDB: true, Logger: db.Logger.LogMode(logger.Info)})
+		query := db.Session(&gorm.Session{NewDB: true})
 		for _, rule := range request.Filter.Rules {
 			if request.Filter.Condition == And {
 				query = query.Where(fmt.Sprintf("%s %s ?", rule.Field, rule.Operator), rule.Value)
@@ -2224,7 +2223,7 @@ func (c *cmdbClient) GetBcsPod(request *client.GetBcsPodRequest, db *gorm.DB, wi
 
 		var pod []model.Pod
 
-		if err := query.Debug().Find(&pod).Error; err != nil {
+		if err := query.Find(&pod).Error; err != nil {
 			blog.Errorf("query pod withDB failed: %v", err)
 		} else {
 			if podMarshal, errM := json.Marshal(pod); errM != nil {
@@ -2311,7 +2310,7 @@ func (c *cmdbClient) GetBcsContainer(
 	}
 
 	if withDB && db != nil {
-		query := db.Session(&gorm.Session{NewDB: true, Logger: db.Logger.LogMode(logger.Info)})
+		query := db.Session(&gorm.Session{NewDB: true})
 		for _, rule := range request.Filter.Rules {
 			if request.Filter.Condition == And {
 				query = query.Where(fmt.Sprintf("%s %s ?", rule.Field, rule.Operator), rule.Value)
@@ -2323,7 +2322,7 @@ func (c *cmdbClient) GetBcsContainer(
 
 		var container []model.Container
 
-		if err := query.Debug().Find(&container).Error; err != nil {
+		if err := query.Find(&container).Error; err != nil {
 			blog.Errorf("query container withDB failed: %v", err)
 		} else {
 			if containerMarshal, errM := json.Marshal(container); errM != nil {

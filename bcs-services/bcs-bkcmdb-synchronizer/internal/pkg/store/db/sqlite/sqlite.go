@@ -42,10 +42,11 @@ func New(path string, logLevel int) *SQLite {
 // Open 函数尝试使用给定的路径打开一个 SQLite 数据库连接
 // 如果成功，它返回一个 GORM 数据库实例；如果失败，它会记录错误并返回 nil
 func Open(path string, logLevel int) *gorm.DB {
-	config := &gorm.Config{}
-	if logLevel > 0 {
-		config.Logger = logger.Default.LogMode(logger.LogLevel(logLevel))
+	blog.Infof("sqlite.Open called with path: %s, logLevel: %d", path, logLevel)
+	config := &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(logLevel)),
 	}
+
 	db, err := gorm.Open(sqlite.Open(path), config) // 尝试打开数据库连接
 	if err != nil {                                 // 如果发生错误
 		blog.Errorf("Failed to open the SQLite database: %v", err) // 记录错误

@@ -126,7 +126,7 @@ func (b *BcsBkcmdbSynchronizerHandler) HandleMsg(
 
 	path := "/data/bcs/bcs-bkcmdb-synchronizer/db/" + clusterId + ".db"
 
-	db := sqlite.Open(path)
+	db := sqlite.Open(path, b.Syncer.BkcmdbSynchronizerOption.Synchronizer.SqlLogLevel)
 	if db == nil {
 		blog.Errorf("open db failed, path: %s", path)
 		return
