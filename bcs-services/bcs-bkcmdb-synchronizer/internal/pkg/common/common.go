@@ -160,3 +160,18 @@ func IsKindInSlice(kind string, whitelist []string) bool {
 	}
 	return false
 }
+
+// Deref dereferences a pointer and returns its value. If the pointer is nil, it returns the zero value of the type.
+// This is a generic tool to prevent panics when dereferencing nil pointers.
+func Deref[T any](p *T) T {
+	if p == nil {
+		var v T
+		return v
+	}
+	return *p
+}
+
+// Ptr returns a pointer to the given value.
+func Ptr[T any](v T) *T {
+	return &v
+}
