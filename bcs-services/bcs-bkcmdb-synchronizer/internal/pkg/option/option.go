@@ -43,6 +43,8 @@ type SynchronizerConfig struct {
 	CustomResourceTypes map[string][]string `json:"customResourceTypes"`
 	// SqlLogLevel define sql log level
 	SqlLogLevel int `json:"sqlLogLevel"`
+	// CleanLocalCache define whether to clean local cache
+	CleanLocalCache bool `json:"cleanLocalCache"`
 }
 
 // CustomResourceType defines parsed custom resource type configuration.

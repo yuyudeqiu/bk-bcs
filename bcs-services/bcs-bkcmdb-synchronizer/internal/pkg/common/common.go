@@ -151,6 +151,21 @@ func SetSqlLogLevelFromEnv(opt *option.BkcmdbSynchronizerOption) error {
 	return nil
 }
 
+// SetCleanLocalCacheFromEnv parses synchronizer_cleanLocalCache environment variable
+// and sets it to the option.
+func SetCleanLocalCacheFromEnv(opt *option.BkcmdbSynchronizerOption) error {
+	envValue := os.Getenv("synchronizer_cleanLocalCache")
+	if envValue == "" {
+		return nil
+	}
+	cleanLocalCache, err := strconv.ParseBool(envValue)
+	if err != nil {
+		return fmt.Errorf("parse clean local cache failed: %w", err)
+	}
+	opt.Synchronizer.CleanLocalCache = cleanLocalCache
+	return nil
+}
+
 // IsKindInSlice checks if a kind exists in the whitelist
 func IsKindInSlice(kind string, whitelist []string) bool {
 	for _, s := range whitelist {
