@@ -325,7 +325,7 @@ func (v *VpcClient) CheckAssistantCidr(vpcId string, news []string, olds []strin
 }
 
 // CreateSubnet create subnet in vpc
-func (v *VpcClient) CreateSubnet(vpcId, subnetName, zone string, subnet *net.IPNet) (*vpc.Subnet, error) {
+func (v *VpcClient) CreateSubnet(vpcId, subnetName, zone string, subnet *net.IPNet, enableIPv6 bool) (*vpc.Subnet, error) {
 	request := vpc.NewCreateSubnetRequest()
 	request.VpcId = common.StringPtr(vpcId)
 	request.SubnetName = common.StringPtr(subnetName)
@@ -340,6 +340,23 @@ func (v *VpcClient) CreateSubnet(vpcId, subnetName, zone string, subnet *net.IPN
 
 	if resp == nil || resp.Response == nil {
 		return nil, fmt.Errorf("CreateSubnet resp is nil")
+	}
+
+	if enableIPv6 {
+		blog.Infof("CreateSubnet assign IPv6 cidr block for subnet[%s]", *resp.Response.Subnet.SubnetId)
+		assignReq := vpc.NewAssignIpv6SubnetCidrBlockRequest()
+		assignReq.VpcId = common.StringPtr(vpcId)
+		assignReq.Ipv6SubnetCidrBlocks = []*vpc.Ipv6SubnetCidrBlock{
+			{
+				SubnetId: resp.Response.Subnet.SubnetId,
+			},
+		}
+
+		_, err = v.client.AssignIpv6SubnetCidrBlock(assignReq)
+		if err != nil {
+			blog.Errorf("AssignIpv6SubnetCidrBlock failed, err: %s", err.Error())
+			return nil, err
+		}
 	}
 
 	return resp.Response.Subnet, nil
