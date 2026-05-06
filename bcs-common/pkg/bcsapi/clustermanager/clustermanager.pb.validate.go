@@ -52497,6 +52497,8 @@ func (m *OsImage) validate(all bool) error {
 
 	}
 
+	// no validation rules for SupportIpv6
+
 	if len(errors) > 0 {
 		return OsImageMultiError(errors)
 	}
