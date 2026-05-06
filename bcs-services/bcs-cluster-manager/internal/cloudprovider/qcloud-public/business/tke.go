@@ -952,12 +952,12 @@ func CheckClusterInstanceStatus(ctx context.Context, info *cloudprovider.CloudDe
 // CheckClusterAllInstanceStatus 检测集群所有节点状态
 // nolint
 func CheckClusterAllInstanceStatus(ctx context.Context,
-	info *cloudprovider.CloudDependBasicInfo) ([]InstanceInfo, []InstanceInfo, error) {
+	info *cloudprovider.CloudDependBasicInfo) ([]string, []string, error) {
 	taskID, stepName := cloudprovider.GetTaskIDAndStepNameFromContext(ctx)
 
 	var (
-		addSuccessNodes = make([]InstanceInfo, 0)
-		addFailureNodes = make([]InstanceInfo, 0)
+		addSuccessNodes = make([]string, 0)
+		addFailureNodes = make([]string, 0)
 	)
 
 	// get qcloud client
@@ -981,23 +981,17 @@ func CheckClusterAllInstanceStatus(ctx context.Context,
 		}
 
 		index := 0
-		running, failure := make([]InstanceInfo, 0), make([]InstanceInfo, 0)
+		running, failure := make([]string, 0), make([]string, 0)
 
 		for _, ins := range instances {
 			blog.Infof("CheckClusterAllInstanceStatus[%s] instance[%s] role[%s] status[%s]",
 				taskID, ins.InstanceID, ins.InstanceRole, ins.InstanceState)
 			switch ins.InstanceState {
 			case api.RunningInstanceTke.String():
-				running = append(running, InstanceInfo{
-					InstanceID: ins.InstanceID,
-					InstanceIP: ins.InstanceIP,
-				})
+				running = append(running, ins.InstanceID)
 				index++
 			case api.FailedInstanceTke.String():
-				failure = append(failure, InstanceInfo{
-					InstanceID: ins.InstanceID,
-					InstanceIP: ins.InstanceIP,
-				})
+				failure = append(failure, ins.InstanceID)
 				index++
 			default:
 			}
@@ -1020,7 +1014,7 @@ func CheckClusterAllInstanceStatus(ctx context.Context,
 	if errors.Is(err, context.DeadlineExceeded) {
 		blog.Errorf("CheckClusterAllInstanceStatus[%s] QueryTkeClusterAllInstances failed: %v", taskID, err)
 
-		running, failure := make([]InstanceInfo, 0), make([]InstanceInfo, 0)
+		running, failure := make([]string, 0), make([]string, 0)
 		instances, errQuery := cli.QueryTkeClusterAllInstances(ctx, info.Cluster.SystemID, nil)
 		if errQuery != nil {
 			blog.Errorf("CheckClusterAllInstanceStatus[%s] QueryTkeClusterAllInstances "+
@@ -1033,15 +1027,9 @@ func CheckClusterAllInstanceStatus(ctx context.Context,
 				taskID, ins.InstanceID, ins.InstanceRole, ins.InstanceState)
 			switch ins.InstanceState {
 			case api.RunningInstanceTke.String():
-				running = append(running, InstanceInfo{
-					InstanceID: ins.InstanceID,
-					InstanceIP: ins.InstanceIP,
-				})
+				running = append(running, ins.InstanceID)
 			default:
-				failure = append(failure, InstanceInfo{
-					InstanceID: ins.InstanceID,
-					InstanceIP: ins.InstanceIP,
-				})
+				failure = append(failure, ins.InstanceID)
 			}
 		}
 		addSuccessNodes = running

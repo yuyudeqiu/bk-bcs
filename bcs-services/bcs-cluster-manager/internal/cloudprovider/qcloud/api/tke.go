@@ -17,6 +17,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common/blog"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
@@ -273,24 +274,87 @@ func (cli *TkeClient) QueryTkeClusterAllInstances(ctx context.Context, clusterID
 			traceID, *response.RequestId, clusterID, *response.TotalCount)
 
 		for _, instance := range response.InstanceSet {
+			instanceID := utils.StringPtrToString(instance.InstanceId)
+
 			instanceList = append(instanceList, &InstanceInfo{
-				InstanceID:         utils.StringPtrToString(instance.InstanceId),
+				InstanceID:         instanceID,
 				InstanceIP:         utils.StringPtrToString(instance.LanIP),
+				InstanceIPv6:       "",
 				InstanceRole:       utils.StringPtrToString(instance.InstanceRole),
 				InstanceState:      utils.StringPtrToString(instance.InstanceState),
 				NodePoolId:         utils.StringPtrToString(instance.NodePoolId),
 				AutoscalingGroupId: utils.StringPtrToString(instance.AutoscalingGroupId),
 			})
 
-			instanceIDList = append(instanceIDList, utils.StringPtrToString(instance.InstanceId))
+			instanceIDList = append(instanceIDList, instanceID)
 		}
 
 		instanceListLen = len(response.InstanceSet)
 		initOffset += 100
 	}
 
+	ipv6Map, err := cli.QueryInstanceIPv6Map(instanceIDList)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range instanceList {
+		item.InstanceIPv6 = strings.Join(ipv6Map[item.InstanceID], ",")
+	}
+
 	blog.Infof("traceID[%s] QueryTkeClusterAllInstances[%+v]", traceID, instanceIDList)
 	return instanceList, nil
+}
+
+func (cli *TkeClient) QueryInstanceIPv6Map(instanceIDs []string) (map[string][]string, error) {
+	result := make(map[string][]string)
+
+	// DescribeExistedInstances 这里只适用于普通 CVM 节点，实例 ID 形如 ins-xxx
+	cvmIDs := make([]string, 0, len(instanceIDs))
+	for _, id := range instanceIDs {
+		if strings.HasPrefix(id, "ins-") {
+			cvmIDs = append(cvmIDs, id)
+		}
+	}
+
+	for i := 0; i < len(cvmIDs); i += 100 {
+		end := i + 100
+		if end > len(cvmIDs) {
+			end = len(cvmIDs)
+		}
+
+		req := tke.NewDescribeExistedInstancesRequest()
+		req.InstanceIds = make([]*string, 0, end-i)
+		for _, id := range cvmIDs[i:end] {
+			req.InstanceIds = append(req.InstanceIds, common.StringPtr(id))
+		}
+		// 这里不要再传 ClusterId，文档说明不能和 InstanceIds 同时指定
+
+		resp, err := cli.tke.DescribeExistedInstances(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.Response == nil {
+			return nil, cloudprovider.ErrCloudLostResponse
+		}
+
+		for _, ins := range resp.Response.ExistedInstanceSet {
+			if ins == nil || ins.InstanceId == nil {
+				continue
+			}
+
+			id := utils.StringPtrToString(ins.InstanceId)
+			addrs := make([]string, 0, len(ins.IPv6Addresses))
+			for _, addr := range ins.IPv6Addresses {
+				if addr != nil && *addr != "" {
+					addrs = append(addrs, *addr)
+				}
+			}
+			result[id] = addrs
+		}
+	}
+
+	return result, nil
 }
 
 // QueryTkeClusterInstances query cluster specified instances, attention limit max 100.

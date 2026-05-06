@@ -703,6 +703,8 @@ type InstanceInfo struct {
 	InstanceID string
 	// 节点内网IP
 	InstanceIP string
+	// 节点内网IPv6
+	InstanceIPv6 string
 	// 节点角色, MASTER, WORKER, ETCD, MASTER_ETCD,ALL, 默认为WORKER
 	InstanceRole string
 	// 实例的状态（running 运行中，initializing 初始化中，failed 异常）

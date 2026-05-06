@@ -1077,7 +1077,7 @@ func CheckCreateClusterNodeStatusTask(taskID string, stepName string) error { //
 	// failed nodes
 	if len(addFailureNodes) > 0 {
 		state.Task.CommonParams[cloudprovider.FailedClusterNodeIDsKey.String()] =
-			strings.Join(business.GetInstanceIDs(addFailureNodes), ",")
+			strings.Join(addFailureNodes, ",")
 	}
 	if len(addSuccessNodes) == 0 {
 		cloudprovider.GetStorageModel().CreateTaskStepLogError(context.Background(), taskID, stepName,
@@ -1094,11 +1094,17 @@ func CheckCreateClusterNodeStatusTask(taskID string, stepName string) error { //
 
 	// save common data
 	state.Task.CommonParams[cloudprovider.SuccessClusterNodeIDsKey.String()] =
-		strings.Join(business.GetInstanceIDs(addSuccessNodes), ",")
+		strings.Join(addSuccessNodes, ",")
 	state.Task.CommonParams[cloudprovider.NodeIPsKey.String()] =
-		strings.Join(business.GetInstanceIPs(addSuccessNodes), ",")
+		strings.Join(cloudprovider.GetInstanceIPsByID(ctx, addSuccessNodes), ",")
 	state.Task.CommonParams[cloudprovider.DynamicNodeIPListKey.String()] =
-		strings.Join(business.GetInstanceIPs(addSuccessNodes), ",")
+		strings.Join(cloudprovider.GetInstanceIPsByID(ctx, addSuccessNodes), ",")
+
+	// save node ipv6
+	successNodeIPv6s := cloudprovider.GetInstanceIPv6sByID(ctx, addSuccessNodes)
+	if len(successNodeIPv6s) > 0 {
+		state.Task.CommonParams[cloudprovider.NodeIPv6sKey.String()] = strings.Join(successNodeIPv6s, ",")
+	}
 
 	cloudprovider.GetStorageModel().CreateTaskStepLogInfo(context.Background(), taskID, stepName,
 		"check cluster instance status successful")

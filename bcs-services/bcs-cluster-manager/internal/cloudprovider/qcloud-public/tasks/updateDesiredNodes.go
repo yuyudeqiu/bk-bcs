@@ -328,6 +328,7 @@ func transInstancesToNode(
 		n.NodeGroupID = info.NodeGroup.NodeGroupID
 		n.Passwd = info.NodeGroup.LaunchTemplate.InitLoginPassword
 		n.Status = common.StatusInitialization
+		// Note: n.InnerIPv6 is already populated by ListNodesByInstanceID via CVM DescribeInstances
 		err = cloudprovider.SaveNodeInfoToDB(ctx, n, false)
 		if err != nil {
 			blog.Errorf("transInstancesToNode[%s] SaveNodeInfoToDB[%s] failed: %v", taskID, n.InnerIP, err)
@@ -336,6 +337,7 @@ func transInstancesToNode(
 
 	return nodeIPs, nil
 }
+
 
 // destroyAsgInstances destroy Asg instances
 func destroyAsgInstances(ctx context.Context, info *cloudprovider.CloudDependBasicInfo,
@@ -449,6 +451,9 @@ func CheckClusterNodesStatusTask(taskID string, stepName string) error { // noli
 		return retErr
 	}
 
+	blog.Infof("CheckClusterNodeStatusTask[%s] delivery succeed[%d] instances[%v] failed[%d] instances[%v]",
+		taskID, len(successInstances), successInstances, len(failureInstances), failureInstances)
+
 	// rollback abnormal nodes
 	if len(failureInstances) > 0 {
 		blog.Errorf("CheckClusterNodesStatusTask[%s] handle failedNodes[%v]", taskID, failureInstances)
@@ -461,7 +466,7 @@ func CheckClusterNodesStatusTask(taskID string, stepName string) error { // noli
 	blog.Infof("CheckClusterNodeStatusTask[%s] delivery succeed[%d] instances[%v] failed[%d] instances[%v]",
 		taskID, len(successInstances), successInstances, len(failureInstances), failureInstances)
 
-	// trans instanceIDs to ipList
+	// trans instanceIDs to ipList (read from DB, consistent with original behaviour)
 	ipList := cloudprovider.GetInstanceIPsByID(ctx, successInstances)
 
 	// update response information to task common params
@@ -473,6 +478,12 @@ func CheckClusterNodesStatusTask(taskID string, stepName string) error { // noli
 	}
 	if len(failureInstances) > 0 {
 		state.Task.CommonParams[cloudprovider.FailedClusterNodeIDsKey.String()] = strings.Join(failureInstances, ",")
+	}
+
+	// read IPv6 from DB; already populated by transInstancesToNode via CVM DescribeInstances
+	nodeIPv6s := cloudprovider.GetInstanceIPv6sByID(ctx, successInstances)
+	if len(nodeIPv6s) > 0 {
+		state.Task.CommonParams[cloudprovider.NodeIPv6sKey.String()] = strings.Join(nodeIPv6s, ",")
 	}
 
 	// successInstance ip list

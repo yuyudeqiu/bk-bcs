@@ -30,26 +30,9 @@ type NodeAdvancedOptions struct {
 
 // InstanceInfo instance info
 type InstanceInfo struct {
-	InstanceID string
-	InstanceIP string
-}
-
-// GetInstanceIPs get instance ip
-func GetInstanceIPs(ins []InstanceInfo) []string {
-	ips := make([]string, 0)
-	for i := range ins {
-		ips = append(ips, ins[i].InstanceIP)
-	}
-	return ips
-}
-
-// GetInstanceIDs get instance id
-func GetInstanceIDs(ins []InstanceInfo) []string {
-	ids := make([]string, 0)
-	for i := range ins {
-		ids = append(ids, ins[i].InstanceIP)
-	}
-	return ids
+	InstanceID   string
+	InstanceIP   string
+	InstanceIPv6 string
 }
 
 // InstanceDisk xxx
