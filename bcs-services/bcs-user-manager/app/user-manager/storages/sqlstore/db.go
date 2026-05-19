@@ -77,6 +77,14 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 			User:     conf.DatabaseConfig.DBUser,
 			Password: conf.DatabaseConfig.DBPassword,
 			Name:     conf.DatabaseConfig.DBName,
+			Ssl: godbsdk.TLS{
+				Enable: conf.DatabaseConfig.Ssl.Enable,
+				Mode:   conf.DatabaseConfig.Ssl.Mode,
+				Ca:     conf.DatabaseConfig.Ssl.Ca,
+				Cert:   conf.DatabaseConfig.Ssl.Cert,
+				Key:    conf.DatabaseConfig.Ssl.Key,
+			},
+			SvcConfPath: conf.DatabaseConfig.SvcConfPath,
 		}
 		// 连接池参数使用配置值，若为 0 则使用 SDK 默认值
 		if conf.DatabaseConfig.MaxOpenConns > 0 {

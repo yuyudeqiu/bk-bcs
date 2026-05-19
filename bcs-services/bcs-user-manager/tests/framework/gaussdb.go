@@ -2,6 +2,7 @@ package framework
 
 import (
 	"fmt"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -14,6 +15,26 @@ var GaussDBConfig = DatabaseConfig{
 	DBUser:     "gaussdb",
 	DBPassword: "openGauss@123",
 	DBName:     "bcs_test",
+}
+
+func init() {
+	if host := GetEnvWithFallback("BCS_TEST_GAUSSDB_HOST", "BKAUTH_TEST_GAUSSDB_HOST"); host != "" {
+		GaussDBConfig.DBHost = host
+	}
+	if portStr := GetEnvWithFallback("BCS_TEST_GAUSSDB_PORT", "BKAUTH_TEST_GAUSSDB_PORT"); portStr != "" {
+		if port, err := strconv.Atoi(portStr); err == nil {
+			GaussDBConfig.DBPort = port
+		}
+	}
+	if user := GetEnvWithFallback("BCS_TEST_GAUSSDB_USER", "BKAUTH_TEST_GAUSSDB_USER"); user != "" {
+		GaussDBConfig.DBUser = user
+	}
+	if pwd := GetEnvWithFallback("BCS_TEST_GAUSSDB_PASSWORD", "BKAUTH_TEST_GAUSSDB_PASSWORD"); pwd != "" {
+		GaussDBConfig.DBPassword = pwd
+	}
+	if name := GetEnvWithFallback("BCS_TEST_GAUSSDB_DBNAME", "BKAUTH_TEST_GAUSSDB_DBNAME"); name != "" {
+		GaussDBConfig.DBName = name
+	}
 }
 
 // InitGaussDB 初始化 OpenGauss 测试数据库

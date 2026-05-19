@@ -11,7 +11,7 @@ replace (
 )
 
 require (
-	code.cwoa.net/carlchen2/cw-godb-sdk v0.4.1
+	code.cwoa.net/carlchen2/cw-godb-sdk v0.4.2
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20241015035856-99f8d8f45458
 	github.com/Tencent/bk-bcs/bcs-common/common/encryptv2 v0.0.0-20230921064043-a8ed550f5a77

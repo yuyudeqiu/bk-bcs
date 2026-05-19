@@ -2,6 +2,7 @@ package framework
 
 import (
 	"fmt"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -14,6 +15,26 @@ var MySQLConfig = DatabaseConfig{
 	DBUser:     "root",
 	DBPassword: "root",
 	DBName:     "bcs_test",
+}
+
+func init() {
+	if host := GetEnvWithFallback("BCS_TEST_MYSQL_HOST", "BKAUTH_TEST_MYSQL_HOST"); host != "" {
+		MySQLConfig.DBHost = host
+	}
+	if portStr := GetEnvWithFallback("BCS_TEST_MYSQL_PORT", "BKAUTH_TEST_MYSQL_PORT"); portStr != "" {
+		if port, err := strconv.Atoi(portStr); err == nil {
+			MySQLConfig.DBPort = port
+		}
+	}
+	if user := GetEnvWithFallback("BCS_TEST_MYSQL_USER", "BKAUTH_TEST_MYSQL_USER"); user != "" {
+		MySQLConfig.DBUser = user
+	}
+	if pwd := GetEnvWithFallback("BCS_TEST_MYSQL_PASSWORD", "BKAUTH_TEST_MYSQL_PASSWORD"); pwd != "" {
+		MySQLConfig.DBPassword = pwd
+	}
+	if name := GetEnvWithFallback("BCS_TEST_MYSQL_DBNAME", "BKAUTH_TEST_MYSQL_DBNAME"); name != "" {
+		MySQLConfig.DBName = name
+	}
 }
 
 // InitMySQL 初始化 MySQL 测试数据库

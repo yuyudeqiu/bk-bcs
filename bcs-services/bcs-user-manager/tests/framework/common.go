@@ -2,6 +2,7 @@ package framework
 
 import (
 	"fmt"
+	"os"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -30,14 +31,25 @@ var TableNames = []string{
 	"tke_cidrs",
 }
 
+// DatabaseSSL 数据库 SSL 配置
+type DatabaseSSL struct {
+	Enable bool
+	Mode   string
+	Ca     string
+	Cert   string
+	Key    string
+}
+
 // DatabaseConfig 数据库连接配置
 type DatabaseConfig struct {
-	DBType     string
-	DBHost     string
-	DBPort     int
-	DBUser     string
-	DBPassword string
-	DBName     string
+	DBType      string
+	DBHost      string
+	DBPort      int
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	SvcConfPath string
+	Ssl         DatabaseSSL
 }
 
 // NewDBClient 创建数据库客户端
@@ -61,6 +73,14 @@ func NewDBClient(cfg DatabaseConfig) (*gorm.DB, error) {
 		User:     cfg.DBUser,
 		Password: cfg.DBPassword,
 		Name:     cfg.DBName,
+		Ssl: godbsdk.TLS{
+			Enable: cfg.Ssl.Enable,
+			Mode:   cfg.Ssl.Mode,
+			Ca:     cfg.Ssl.Ca,
+			Cert:   cfg.Ssl.Cert,
+			Key:    cfg.Ssl.Key,
+		},
+		SvcConfPath: cfg.SvcConfPath,
 	}
 
 	client, err := gormsdk.NewClient(dbConfig, logger.Default.LogMode(logger.Silent))
@@ -95,4 +115,12 @@ func CleanData(db *gorm.DB) {
 	for _, tableName := range TableNames {
 		db.Exec("DELETE FROM " + tableName)
 	}
+}
+
+// GetEnvWithFallback 获取环境变量，带有备用 key 的 fallback
+func GetEnvWithFallback(key, fallbackKey string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return os.Getenv(fallbackKey)
 }

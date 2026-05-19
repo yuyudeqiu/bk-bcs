@@ -181,13 +181,24 @@ type RedisConfig struct {
 // NOCC:golint/lll(设计如此:)
 // nolint
 type DatabaseConfig struct {
-	DBType               string `json:"db_type" usage:"database type: mysql, postgres" mapstructure:"db_type" yaml:"db_type"`
-	DBHost               string `json:"db_host" usage:"database host" mapstructure:"db_host" yaml:"db_host"`
-	DBPort               int    `json:"db_port" usage:"database port" mapstructure:"db_port" yaml:"db_port"`
-	DBUser               string `json:"db_user" usage:"database user" mapstructure:"db_user" yaml:"db_user"`
-	DBPassword           string `json:"db_password" usage:"database password" mapstructure:"db_password" yaml:"db_password"`
-	DBName               string `json:"db_name" usage:"database name" mapstructure:"db_name" yaml:"db_name"`
-	MaxOpenConns         int    `json:"max_open_conns" usage:"database max open conns" mapstructure:"max_open_conns" yaml:"max_open_conns"`
-	MaxIdleConns         int    `json:"max_idle_conns" usage:"database max idle conns" mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
-	ConnMaxLifetimeSecond int   `json:"conn_max_lifetime_second" usage:"database conn max lifetime (seconds)" mapstructure:"conn_max_lifetime_second" yaml:"conn_max_lifetime_second"`
+	DBType                string      `json:"db_type" usage:"database type: mysql, postgres" mapstructure:"db_type" yaml:"db_type"`
+	DBHost                string      `json:"db_host" usage:"database host" mapstructure:"db_host" yaml:"db_host"`
+	DBPort                int         `json:"db_port" usage:"database port" mapstructure:"db_port" yaml:"db_port"`
+	DBUser                string      `json:"db_user" usage:"database user" mapstructure:"db_user" yaml:"db_user"`
+	DBPassword            string      `json:"db_password" usage:"database password" mapstructure:"db_password" yaml:"db_password"`
+	DBName                string      `json:"db_name" usage:"database name" mapstructure:"db_name" yaml:"db_name"`
+	MaxOpenConns          int         `json:"max_open_conns" usage:"database max open conns" mapstructure:"max_open_conns" yaml:"max_open_conns"`
+	MaxIdleConns          int         `json:"max_idle_conns" usage:"database max idle conns" mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
+	ConnMaxLifetimeSecond int         `json:"conn_max_lifetime_second" usage:"database conn max lifetime (seconds)" mapstructure:"conn_max_lifetime_second" yaml:"conn_max_lifetime_second"`
+	SvcConfPath           string      `json:"svc_conf_path" usage:"database svc conf path" mapstructure:"svc_conf_path" yaml:"svc_conf_path"`
+	Ssl                   DatabaseSSL `json:"ssl" usage:"database ssl config" mapstructure:"ssl" yaml:"ssl"`
+}
+
+// DatabaseSSL 数据库 SSL 配置
+type DatabaseSSL struct {
+	Enable bool   `json:"enable" usage:"enable db ssl" mapstructure:"enable" yaml:"enable"`
+	Mode   string `json:"mode" usage:"db ssl mode" mapstructure:"mode" yaml:"mode"`
+	Ca     string `json:"ca" usage:"db ssl ca" mapstructure:"ca" yaml:"ca"`
+	Cert   string `json:"cert" usage:"db ssl cert" mapstructure:"cert" yaml:"cert"`
+	Key    string `json:"key" usage:"db ssl key" mapstructure:"key" yaml:"key"`
 }
