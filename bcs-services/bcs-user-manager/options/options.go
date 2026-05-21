@@ -196,9 +196,10 @@ type DatabaseConfig struct {
 
 // DatabaseSSL 数据库 SSL 配置
 type DatabaseSSL struct {
-	Enable bool   `json:"enable" usage:"enable db ssl" mapstructure:"enable" yaml:"enable"`
-	Mode   string `json:"mode" usage:"db ssl mode" mapstructure:"mode" yaml:"mode"`
-	Ca     string `json:"ca" usage:"db ssl ca" mapstructure:"ca" yaml:"ca"`
-	Cert   string `json:"cert" usage:"db ssl cert" mapstructure:"cert" yaml:"cert"`
-	Key    string `json:"key" usage:"db ssl key" mapstructure:"key" yaml:"key"`
+	Enable      bool   `json:"enable" usage:"enable db ssl" mapstructure:"enable" yaml:"enable"`
+	Mode        string `json:"mode" usage:"db ssl mode" mapstructure:"mode" yaml:"mode"`
+	Ca          string `json:"ca" usage:"db ssl ca" mapstructure:"ca" yaml:"ca"`
+	Cert        string `json:"cert" usage:"db ssl cert" mapstructure:"cert" yaml:"cert"`
+	Key         string `json:"key" usage:"db ssl key" mapstructure:"key" yaml:"key"`
+	KeyPassword string `json:"key_password" usage:"db ssl key password" mapstructure:"key_password" yaml:"key_password"`
 }

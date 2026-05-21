@@ -78,11 +78,12 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 			Password: conf.DatabaseConfig.DBPassword,
 			Name:     conf.DatabaseConfig.DBName,
 			Ssl: godbsdk.TLS{
-				Enable: conf.DatabaseConfig.Ssl.Enable,
-				Mode:   conf.DatabaseConfig.Ssl.Mode,
-				Ca:     conf.DatabaseConfig.Ssl.Ca,
-				Cert:   conf.DatabaseConfig.Ssl.Cert,
-				Key:    conf.DatabaseConfig.Ssl.Key,
+				Enable:      conf.DatabaseConfig.Ssl.Enable,
+				Mode:        conf.DatabaseConfig.Ssl.Mode,
+				Ca:          conf.DatabaseConfig.Ssl.Ca,
+				Cert:        conf.DatabaseConfig.Ssl.Cert,
+				Key:         conf.DatabaseConfig.Ssl.Key,
+				KeyPassword: conf.DatabaseConfig.Ssl.KeyPassword,
 			},
 			SvcConfPath: conf.DatabaseConfig.SvcConfPath,
 		}

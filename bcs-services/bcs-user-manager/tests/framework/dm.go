@@ -44,6 +44,9 @@ func init() {
 	if certKeyFile := GetEnvWithFallback("BCS_TEST_DM_TLS_CERT_KEY_FILE", "BKAUTH_TEST_DM_TLS_CERT_KEY_FILE"); certKeyFile != "" {
 		DMConfig.Ssl.Key = certKeyFile
 	}
+	if keyPassword := GetEnvWithFallback("BCS_TEST_DM_TLS_KEY_PASSWORD", "BKAUTH_TEST_DM_TLS_KEY_PASSWORD"); keyPassword != "" {
+		DMConfig.Ssl.KeyPassword = keyPassword
+	}
 	if svcConfPath := GetEnvWithFallback("BCS_TEST_DM_SVC_CONF_PATH", "BKAUTH_TEST_DM_SVC_CONF_PATH"); svcConfPath != "" {
 		DMConfig.SvcConfPath = svcConfPath
 	}

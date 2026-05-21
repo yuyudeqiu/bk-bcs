@@ -33,11 +33,12 @@ var TableNames = []string{
 
 // DatabaseSSL 数据库 SSL 配置
 type DatabaseSSL struct {
-	Enable bool
-	Mode   string
-	Ca     string
-	Cert   string
-	Key    string
+	Enable      bool
+	Mode        string
+	Ca          string
+	Cert        string
+	Key         string
+	KeyPassword string
 }
 
 // DatabaseConfig 数据库连接配置
@@ -74,11 +75,12 @@ func NewDBClient(cfg DatabaseConfig) (*gorm.DB, error) {
 		Password: cfg.DBPassword,
 		Name:     cfg.DBName,
 		Ssl: godbsdk.TLS{
-			Enable: cfg.Ssl.Enable,
-			Mode:   cfg.Ssl.Mode,
-			Ca:     cfg.Ssl.Ca,
-			Cert:   cfg.Ssl.Cert,
-			Key:    cfg.Ssl.Key,
+			Enable:      cfg.Ssl.Enable,
+			Mode:        cfg.Ssl.Mode,
+			Ca:          cfg.Ssl.Ca,
+			Cert:        cfg.Ssl.Cert,
+			Key:         cfg.Ssl.Key,
+			KeyPassword: cfg.Ssl.KeyPassword,
 		},
 		SvcConfPath: cfg.SvcConfPath,
 	}
