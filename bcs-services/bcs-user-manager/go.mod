@@ -5,13 +5,13 @@ go 1.24.0
 toolchain go1.24.13
 
 replace (
-	github.com/TencentBlueKing/iam-go-sdk => github.com/TencentBlueKing/iam-go-sdk v0.1.5
+	github.com/TencentBlueKing/iam-go-sdk => code.cwoa.net/rd-fy22-canway-platform-products/iam-go-sdk v0.1.6-alpha.0-xc.2
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace => go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.17.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc => go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.17.0
 )
 
 require (
-	code.cwoa.net/carlchen2/cw-godb-sdk v0.4.3
+	code.cwoa.net/carlchen2/cw-godb-sdk v0.4.4
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20241015035856-99f8d8f45458
 	github.com/Tencent/bk-bcs/bcs-common/common/encryptv2 v0.0.0-20230921064043-a8ed550f5a77
@@ -30,6 +30,7 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
+	github.com/parnurzeal/gorequest v0.2.16
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.0
@@ -129,7 +130,6 @@ require (
 	github.com/okyer/gorm4gaussdb v0.0.0-20241115030725-d9d7a96522d1 // indirect
 	github.com/openzipkin/zipkin-go v0.3.0 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
-	github.com/parnurzeal/gorequest v0.2.16 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
