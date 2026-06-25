@@ -67,15 +67,16 @@ func (c *IndependentNamespaceAction) GetNamespace(ctx context.Context,
 		retData.Annotations = append(retData.Annotations, &proto.Annotation{Key: k, Value: v})
 	}
 	// get quota
-	quota, otherQuotas, err := getNamespaceQuotas(ctx, req.GetClusterID(), ns.GetName(), client)
+	quota, otherQuotas, err := getNamespaceQuota(ctx, req.GetClusterID(), ns.GetName(), client)
 	if err != nil {
 		return err
 	}
 	if quota != nil {
 		retData.Quota, retData.Used, retData.CpuUseRate, retData.MemoryUseRate = quotautils.TransferToProto(quota)
 	}
-	retData.OtherQuotas = otherQuotas
-
+	for _, q := range otherQuotas {
+		retData.OtherQuotas = append(retData.OtherQuotas, quotautils.TransferToProtoOtherQuota(q))
+	}
 
 	// get variables
 	variables, err := listNamespaceVariables(ctx, req.GetProjectCode(), req.GetClusterID(), ns.GetName())
@@ -100,21 +101,23 @@ func (c *IndependentNamespaceAction) GetNamespace(ctx context.Context,
 	return nil
 }
 
-func getNamespaceQuotas(ctx context.Context, clusterID, namespace string, clientset *kubernetes.Clientset) (
-	*corev1.ResourceQuota, []*proto.OtherQuota, error) {
+func getNamespaceQuota(ctx context.Context, clusterID, namespace string, clientset *kubernetes.Clientset) (
+	*corev1.ResourceQuota, []*corev1.ResourceQuota, error) {
 	quotaList, err := clientset.CoreV1().ResourceQuotas(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		logging.Error("list resourceQuotas in namespace %s/%s failed, err: %s", clusterID, namespace, err.Error())
 		return nil, nil, errorx.NewClusterErr(err.Error())
 	}
+	if errors.IsNotFound(err) {
+		return nil, nil, nil
+	}
 	var defaultQuota *corev1.ResourceQuota
-	var otherQuotas []*proto.OtherQuota
-	for _, quota := range quotaList.Items {
-		tmpQuota := quota
-		if quota.GetName() == namespace {
-			defaultQuota = &tmpQuota
+	var otherQuotas []*corev1.ResourceQuota
+	for i := range quotaList.Items {
+		if quotaList.Items[i].GetName() == namespace {
+			defaultQuota = &quotaList.Items[i]
 		} else {
-			otherQuotas = append(otherQuotas, quotautils.TransferToProtoOtherQuota(&tmpQuota))
+			otherQuotas = append(otherQuotas, &quotaList.Items[i])
 		}
 	}
 	return defaultQuota, otherQuotas, nil
