@@ -2,14 +2,22 @@ package framework
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 )
 
+var defaultMySQLTestDBPrefixes = []string{
+	"bcs_user_test",
+	"bcs_user_migration_test",
+	"bcs_user_iam_migration_test",
+}
+
 // MySQLConfig MySQL 测试配置
 var MySQLConfig = DatabaseConfig{
-	DBType:    "mysql",
+	DBType:     "mysql",
 	DBHost:     "localhost",
 	DBPort:     3306,
 	DBUser:     "root",
@@ -81,6 +89,46 @@ func createMySQLDatabaseIfNotExists(cfg DatabaseConfig) error {
 	}
 
 	return nil
+}
+
+// DropMySQLDatabaseIfExists 连接到系统数据库并删除目标数据库
+func DropMySQLDatabaseIfExists(dbName string) error {
+	if !isAllowedMySQLTestDBName(dbName) {
+		return fmt.Errorf("refuse to drop database %q: set BCS_TEST_MYSQL_DBNAME_PREFIX to an allowed test prefix", dbName)
+	}
+
+	cfg := MySQLConfig
+	cfg.DBName = "mysql" // 连接到 mysql 系统数据库
+
+	db, err := NewDBClient(cfg)
+	if err != nil {
+		return fmt.Errorf("连接 mysql 系统数据库失败: %w", err)
+	}
+
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+
+	err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)).Error
+	if err != nil {
+		return fmt.Errorf("删除数据库 %s 失败: %w", dbName, err)
+	}
+
+	return nil
+}
+
+func isAllowedMySQLTestDBName(dbName string) bool {
+	prefixes := append([]string{}, defaultMySQLTestDBPrefixes...)
+	if configuredPrefixes := os.Getenv("BCS_TEST_MYSQL_DBNAME_PREFIX"); configuredPrefixes != "" {
+		prefixes = append(prefixes, strings.Split(configuredPrefixes, ",")...)
+	}
+
+	for _, prefix := range prefixes {
+		prefix = strings.TrimSpace(prefix)
+		if prefix != "" && strings.HasPrefix(dbName, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // MustInitMySQL 初始化 MySQL，失败时 panic

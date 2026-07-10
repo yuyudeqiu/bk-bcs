@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.13
 
 replace (
-	github.com/TencentBlueKing/iam-go-sdk => code.cwoa.net/rd-fy22-canway-platform-products/iam-go-sdk v0.1.5-alpha.0-xc.2
+	github.com/TencentBlueKing/iam-go-sdk => code.cwoa.net/rd-fy22-canway-platform-products/iam-go-sdk v0.1.5-alpha.0-xc.3
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace => go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.17.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc => go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.17.0
 )

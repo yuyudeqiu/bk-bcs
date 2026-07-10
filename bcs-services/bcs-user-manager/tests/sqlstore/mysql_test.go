@@ -20,10 +20,16 @@ func TestTokenStoreMySQL(t *testing.T) {
 }
 
 var db *gorm.DB
+var mysqlTestDBName string
 
 var _ = BeforeSuite(func() {
 	var err error
-	db, err = framework.InitMySQL("bcs_user_test")
+	mysqlTestDBName = framework.GetEnvWithFallback("BCS_TEST_MYSQL_DBNAME", "BKAUTH_TEST_MYSQL_DBNAME")
+	if mysqlTestDBName == "" {
+		mysqlTestDBName = "bcs_user_test"
+	}
+
+	db, err = framework.InitMySQL(mysqlTestDBName)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	err = framework.InitTables(db)
@@ -33,6 +39,16 @@ var _ = BeforeSuite(func() {
 	sqlstore.SetGCoreDB(db)
 
 	fmt.Println("Token Store MySQL 集成测试环境已就绪")
+})
+
+var _ = AfterSuite(func() {
+	if db != nil {
+		sqlDB, err := db.DB()
+		if err == nil {
+			_ = sqlDB.Close()
+		}
+	}
+	Expect(framework.DropMySQLDatabaseIfExists(mysqlTestDBName)).Should(Succeed())
 })
 
 var _ = BeforeEach(func() {
