@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"embed"
 	"errors"
 	"fmt"
@@ -33,8 +34,11 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-common/common/static"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/i18n"
+	sdkiam "github.com/TencentBlueKing/iam-go-sdk"
+	"github.com/TencentBlueKing/iam-go-sdk/iammigrate"
 	"github.com/emicklei/go-restful"
 	"github.com/go-micro/plugins/v4/registry/etcd"
+	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"go-micro.dev/v4/registry"
 
@@ -275,7 +279,7 @@ func (u *UserManager) migrate() {
 			blog.Errorf("get db error: %s", err.Error())
 			return
 		}
-		if err := u.IamPermClient.Migrate(sqlDB, d, "bk_iam_migrations",
+		if err := u.MigrateIAM(sqlDB, d, "bk_iam_migrations",
 			5*time.Minute, tempVar); err != nil {
 			if strings.Contains(err.Error(), "no change") {
 				blog.Info("iam migration success")
@@ -286,6 +290,40 @@ func (u *UserManager) migrate() {
 		}
 		blog.Info("iam migration success")
 	}()
+}
+
+// MigrateIAM migrates IAM models according to the configured database type.
+func (u *UserManager) MigrateIAM(sqlDB *sql.DB, d source.Driver, migrateTable string, timeout time.Duration,
+	tempVar interface{}) error {
+	if !isOceanBaseDBType(u.config.DatabaseConfig.DBType) {
+		return u.IamPermClient.Migrate(sqlDB, d, migrateTable, timeout, tempVar)
+	}
+
+	iamCli := newIAMSDKClient(u.config)
+	return iamCli.MigrateWithConfig(sqlDB, d, &iammigrate.Config{
+		MigrationsTable:  migrateTable,
+		StatementTimeout: timeout,
+		TemplateVar:      tempVar,
+		NoLock:           true,
+	})
+}
+
+func isOceanBaseDBType(dbType string) bool {
+	switch strings.ToLower(dbType) {
+	case "ob", "oceanbase":
+		return true
+	default:
+		return false
+	}
+}
+
+func newIAMSDKClient(conf *config.UserMgrConfig) *sdkiam.IAM {
+	if conf.IAMConfig.External {
+		return sdkiam.NewIAM(conf.IAMConfig.SystemID, conf.IAMConfig.AppCode, conf.IAMConfig.AppSecret,
+			conf.IAMConfig.IAMHost, conf.IAMConfig.BkiIAMHost)
+	}
+	return sdkiam.NewAPIGatewayIAM(conf.IAMConfig.SystemID, conf.IAMConfig.AppCode, conf.IAMConfig.AppSecret,
+		conf.IAMConfig.GateWayHost)
 }
 
 // initI18n init i18n

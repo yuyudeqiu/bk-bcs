@@ -60,7 +60,7 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 		// 使用 SDK 结构化配置
 		var dbType godbsdk.DatabaseType
 		switch conf.DatabaseConfig.DBType {
-		case "mysql":
+		case "mysql", "ob", "oceanbase":
 			dbType = godbsdk.Mysql
 		case "postgres":
 			dbType = godbsdk.Postgres

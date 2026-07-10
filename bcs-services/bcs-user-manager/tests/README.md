@@ -119,11 +119,85 @@ go test -tags=dm ./tests/sqlstore/... -v
 go test -tags=gaussdb ./tests/sqlstore/... -v
 ```
 
-## 5. 测试覆盖
+### 4.4 OceanBase IAM Migration 测试
+
+`tests/iammigration` 用于验证 IAM 权限模型 migration 在 MySQL、OceanBase、达梦和高斯数据库上的行为。各数据库入口仅负责连接初始化，migration 断言统一复用同一套测试逻辑。
+
+```bash
+BCS_TEST_MYSQL_HOST=<ob_host> \
+BCS_TEST_MYSQL_PORT=<ob_port> \
+BCS_TEST_MYSQL_USER=<ob_user> \
+BCS_TEST_MYSQL_PASSWORD='<ob_password>' \
+BCS_TEST_MYSQL_DBNAME=bcs_user_iam_migration_test \
+BCS_TEST_DB_TYPE=ob \
+go test ./tests/iammigration -run TestIAMMigrateMySQLCompatible -count=1 -v
+```
+
+MySQL 使用默认 `BCS_TEST_DB_TYPE=mysql`；达梦和高斯分别使用：
+
+```bash
+go test -tags=dm ./tests/iammigration -run TestIAMMigrateDM -count=1 -v
+go test -tags=gaussdb ./tests/iammigration -run TestIAMMigrateGaussDB -count=1 -v
+```
+
+测试会执行 `migrations/*.json` 中的 IAM migration，并验证版本表状态。它构造 `UserManager` 后调用服务启动同样使用的 `MigrateIAM(...)` 路径；测试使用本地 fake IAM server 响应 `/ping` 和模型接口，避免依赖真实 IAM 服务。
+
+自动清理只会删除名称以默认测试前缀（`bcs_user_test`、`bcs_user_migration_test`、`bcs_user_iam_migration_test`）开头的数据库。自定义测试库名时，额外设置 `BCS_TEST_MYSQL_DBNAME_PREFIX=<custom_prefix>`；可用逗号分隔多个前缀。
+
+## 5. OceanBase 与 IAM Migration 适配说明
+
+### 5.1 为什么需要适配
+
+OceanBase 4.2 兼容 MySQL 协议，但不支持 MySQL advisory lock 函数：
+
+```sql
+SELECT GET_LOCK(?, 10)
+SELECT RELEASE_LOCK(?)
+```
+
+`iam-go-sdk` 的默认 `Migrate(...)` 入口会在创建 `bk_iam_migrations` 版本表前执行上述锁操作。因此在 OceanBase 4.2 上，服务启动阶段的 IAM migration 会失败，错误类似：
+
+```text
+FUNCTION GET_LOCK does not exist
+```
+
+验证结果表明，跳过 advisory lock 后，`bk_iam_migrations` 表创建、版本写入，以及 `0000` 到 `0013` 的 migration 文件都可以在 OceanBase 上正常执行。因此 OceanBase 场景只需要跳过 lock，不需要修改 migration JSON 内容。
+
+### 5.2 服务代码如何处理
+
+业务表连接仍使用 MySQL driver。配置 `database_config.db_type` 为 `ob` 或 `oceanbase` 时：
+
+- `sqlstore.InitCoreDatabase` 将 OceanBase 按 MySQL 兼容数据库连接。
+- IAM migration 使用 `iam-go-sdk` 的 `MigrateWithConfig(...)`。
+- `iammigrate.Config.NoLock` 设置为 `true`，跳过 `GET_LOCK` / `RELEASE_LOCK`。
+
+非 OceanBase 场景仍使用原来的 `u.IamPermClient.Migrate(...)`，保持 MySQL 原行为不变。
+
+### 5.3 为什么修改 iam-go-sdk 依赖
+
+当前 `go.mod` 保持：
+
+```go
+require github.com/TencentBlueKing/iam-go-sdk v0.1.6
+```
+
+同时通过 `replace` 指向内部适配版本：
+
+```go
+replace github.com/TencentBlueKing/iam-go-sdk => code.cwoa.net/rd-fy22-canway-platform-products/iam-go-sdk v0.1.5-alpha.0-xc.3
+```
+
+这样做的原因是：
+
+- `bcs-common` 依赖解析仍保持 `github.com/TencentBlueKing/iam-go-sdk v0.1.6`，不会触发 `bcs-common` 降级。
+- 内部 `v0.1.5-alpha.0-xc.3` 回补了 `MigrateWithConfig(...)` 和 `iammigrate.Config.NoLock`，可以解决 OceanBase 4.2 的 `GET_LOCK` 问题。
+- 内部 `v0.1.5-alpha.0-xc.3` 的 `resource.Provider` 仍保持老接口，不需要为 `FetchInstanceList`、`FetchResourceTypeSchema` 增加额外兼容实现。
+
+## 6. 测试覆盖
 
 共覆盖 **10 个 Store**，**49 个方法**，**68 个测试用例**。
 
-### 5.1 Token Store（16 方法）
+### 6.1 Token Store（16 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -145,7 +219,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `UpdateClientToken - 更新客户端信息` | 更新客户端 |
 | `DeleteProjectClient - 删除项目客户端` | 删除客户端 |
 
-### 5.2 Credentials Store（7 方法）
+### 6.2 Credentials Store（7 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -160,7 +234,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `DelWsCredentials - 删除 WebSocket 凭证` | 删除 |
 | `GetWsCredentialsByClusterId - 按 clusterId 前缀查询` | 前缀匹配 |
 
-### 5.3 RegisterToken Store（2 方法）
+### 6.3 RegisterToken Store（2 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -169,7 +243,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `GetRegisterToken - 按 clusterId 查询` | 查询单个 |
 | `GetRegisterToken - 查询不存在的 clusterId 返回 nil` | 不存在返回 nil |
 
-### 5.4 Cluster Store（2 方法）
+### 6.4 Cluster Store（2 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -177,7 +251,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `GetCluster - 按 clusterId 查询集群` | 查询单个 |
 | `GetCluster - 查询不存在的集群返回 nil` | 不存在返回 nil |
 
-### 5.5 Permission Store（5 方法）
+### 6.5 Permission Store（5 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -189,7 +263,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `GetUrrByCondition - 查询不存在的关联返回 nil` | 不存在返回 nil |
 | `DeleteUserResourceRole - 删除关联` | 删除 |
 
-### 5.6 Activity Store（3 方法）
+### 6.6 Activity Store（3 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -201,7 +275,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `SearchActivities - projectCode 为空返回错误` | 参数校验 |
 | `BatchDeleteActivity - 批量删除旧记录` | 按时间删除 |
 
-### 5.7 Log Store（4 方法）
+### 6.7 Log Store（4 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -211,7 +285,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `ListOperationLogByUserClusterID - 按 clusterID 和用户名查询` | 双重条件 |
 | `DeleteOperationLogByTime - 按时间范围删除` | 按时间删除 |
 
-### 5.8 TokenNotify Store（3 方法）
+### 6.8 TokenNotify Store（3 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -220,7 +294,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `GetTokenNotifyByCondition - 查询不存在的 Token 返回空列表` | 不存在返回空 |
 | `DeleteTokenNotify - 删除通知记录` | 删除 |
 
-### 5.9 TkeCidr Store（4 方法）
+### 6.9 TkeCidr Store（4 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -230,7 +304,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `UpdateTkeCidr - 更新 TkeCidr 信息` | 更新状态/集群 |
 | `CountTkeCidr - 统计 TkeCidr` | 分组统计 |
 
-### 5.10 User Store（3 方法）
+### 6.10 User Store（3 方法）
 
 | 测试用例 | 说明 |
 |---------|------|
@@ -239,7 +313,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `GetUserByCondition - 查询不存在的用户返回 nil` | 不存在返回 nil |
 | `UpdateUser - 更新用户信息` | 更新字段 |
 
-## 6. 模型覆盖
+## 7. 模型覆盖
 
 测试通过 GORM AutoMigrate 覆盖以下模型：
 
@@ -260,9 +334,9 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `BcsTokenNotify` | `models/notify.go` |
 | `TkeCidr` | `models/tke.go` |
 
-## 7. 多数据库支持
+## 8. 多数据库支持
 
-### 7.1 Build Tags
+### 8.1 Build Tags
 
 | Tag | 说明 | 运行命令 |
 |-----|------|---------|
@@ -270,7 +344,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 | `dm` | 达梦测试 | `go test -tags=dm ./tests/sqlstore/... -v` |
 | `gaussdb` | OpenGauss 测试 | `go test -tags=gaussdb ./tests/sqlstore/... -v` |
 
-### 7.2 添加新测试
+### 8.2 添加新测试
 
 测试逻辑按 Store 拆分到 `common_*.go` 文件中：
 
@@ -295,21 +369,21 @@ func describeStoreTests(s *storeSet) {
 }
 ```
 
-## 8. 注意事项
+## 9. 注意事项
 
-### 8.1 GORM AutoMigrate
+### 9.1 GORM AutoMigrate
 
 使用 GORM AutoMigrate 自动创建表结构，无需手动编写 DDL，天然支持多数据库兼容。
 
-### 8.2 全局 GCoreDB
+### 9.2 全局 GCoreDB
 
 部分 Store 函数依赖全局 `GCoreDB` 变量，测试框架通过 `sqlstore.SetGCoreDB(db)` 设置。
 
-### 8.3 软删除
+### 9.3 软删除
 
 GORM 默认软删除，`DeleteToken` 等操作实际是更新 `deleted_at` 字段，查询时自动过滤。
 
-### 8.4 OpenSSL 版本要求
+### 9.4 OpenSSL 版本要求
 
 **重要**：SM4 加密需要 OpenSSL 1.1.1+。项目依赖 `TencentBlueKing/crypto-golang-sdk`，其中 CGO 代码调用 `EVP_sm4_ctr`，该函数仅在 OpenSSL 1.1.1 及以上版本可用。
 
@@ -317,14 +391,14 @@ GORM 默认软删除，`DeleteToken` 等操作实际是更新 `deleted_at` 字�
 - **Linux CentOS 7**：系统自带的 OpenSSL 1.0.2k 不支持，需要编译安装 OpenSSL 1.1.1+ 到 `/opt/openssl`（见 2.2 节）
 - **其他 Linux 发行版**：如果 `openssl version` 输出低于 1.1.1，同样需要升级
 
-### 8.5 调试技巧
+### 9.5 调试技巧
 
 - **详细测试步骤**：带上 `-args -ginkgo.v` 参数可以看到每个测试的详细步骤。
 - **日志输出**：在测试中使用 `fmt.Fprintln(GinkgoWriter, "your message")` 输出调试信息，输出会与当前测试 Spec 绑定。
 
-## 9. 测试输出示例
+## 10. 测试输出示例
 
-### 9.1 汇总模式 (-v)
+### 10.1 汇总模式 (-v)
 
 ```
 === RUN   TestTokenStoreMySQL
@@ -339,7 +413,7 @@ SUCCESS! -- 68 Passed | 0 Failed | 0 Pending | 0 Skipped
 PASS
 ```
 
-### 9.2 详细模式 (-v -args -ginkgo.v)
+### 10.2 详细模式 (-v -args -ginkgo.v)
 
 ```
 Running Suite: Token Store MySQL Integration Suite
