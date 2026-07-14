@@ -40,10 +40,11 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 	}
 
 	var db *gorm.DB
+	var err error
 
 	// 优先使用 DSN 方式（向后兼容）
 	if conf.DSN != "" {
-		db, err := gorm.Open(mysql.Open(conf.DSN), &gorm.Config{
+		db, err = gorm.Open(mysql.Open(conf.DSN), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
 		})
 		if err != nil {
@@ -105,6 +106,10 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 		db = client.DB()
 	} else {
 		return fmt.Errorf("core_database dsn not configured and database_config is empty")
+	}
+
+	if db == nil {
+		return fmt.Errorf("database initialized with nil gorm DB")
 	}
 
 	GCoreDB = db
