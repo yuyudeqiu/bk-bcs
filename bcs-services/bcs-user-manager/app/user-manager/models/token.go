@@ -12,7 +12,11 @@
 
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 const (
 	// CreatedBySystem means the token is created by system
@@ -22,15 +26,15 @@ const (
 // BcsTempToken is the temporary token, which is used to create by other client,
 // and it can't be refreshed.
 type BcsTempToken struct {
-	ID        uint       `json:"id" gorm:"primary_key"`
-	Username  string     `json:"username" gorm:"not null"`
-	Token     string     `json:"token" gorm:"unique;size:128"`
-	UserType  uint       `json:"user_type"` // normal user or admin
-	CreatedBy string     `json:"created_by"`
-	CreatedAt time.Time  `json:"created_at"`
-	DeletedAt *time.Time `json:"deleted_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	ExpiresAt time.Time  `json:"expires_at"`
+	ID        uint           `json:"id" gorm:"primary_key"`
+	Username  string         `json:"username" gorm:"not null"`
+	Token     string         `json:"token" gorm:"unique;size:128"`
+	UserType  uint           `json:"user_type"` // normal user or admin
+	CreatedBy string         `json:"created_by"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	ExpiresAt time.Time      `json:"expires_at"`
 }
 
 // HasExpired mean that is temp token has been expired

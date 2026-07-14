@@ -15,19 +15,21 @@ package models
 import (
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // BcsUser user table
 type BcsUser struct {
-	ID        uint       `json:"id" gorm:"primary_key"`
-	Name      string     `json:"name" gorm:"not null"`
-	UserType  uint       `json:"user_type"`
-	UserToken string     `json:"user_token" gorm:"unique;size:128"`
-	CreatedBy string     `json:"created_by"`
-	CreatedAt time.Time  `json:"created_at" gorm:"type:timestamp null;default:null"` // 用户创建时间
-	UpdatedAt time.Time  `json:"updated_at" gorm:"type:timestamp null;default:null"` // user-token刷新时间
-	ExpiresAt time.Time  `json:"expires_at" gorm:"type:timestamp null;default:null"` // user-token过期时间
-	DeletedAt *time.Time `json:"deleted_at" gorm:"type:timestamp null;default:null"` // user-token删除时间
+	ID        uint           `json:"id" gorm:"primary_key"`
+	Name      string         `json:"name" gorm:"not null"`
+	UserType  uint           `json:"user_type"`
+	UserToken string         `json:"user_token" gorm:"unique;size:128"`
+	CreatedBy string         `json:"created_by"`
+	CreatedAt time.Time      `json:"created_at" gorm:"type:timestamp null;default:null"` // 用户创建时间
+	UpdatedAt time.Time      `json:"updated_at" gorm:"type:timestamp null;default:null"` // user-token刷新时间
+	ExpiresAt time.Time      `json:"expires_at" gorm:"type:timestamp null;default:null"` // user-token过期时间
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"type:timestamp null;default:null"` // user-token删除时间
 }
 
 const (
@@ -78,15 +80,15 @@ type BcsClientUser struct {
 
 // BcsClient client user table 平台账号
 type BcsClient struct {
-	ID            uint       `json:"id" gorm:"primary_key"`
-	ProjectCode   string     `json:"project_code" gorm:"not null"`
-	Name          string     `json:"name" gorm:"not null"`
-	Manager       *string    `json:"manager"`        // 管理员，逗号分隔
-	AuthorityUser *string    `json:"authority_user"` // 授权用户，逗号分隔
-	CreatedBy     string     `json:"created_by"`
-	CreatedAt     time.Time  `json:"created_at" gorm:"type:timestamp null;default:null"`
-	UpdatedAt     time.Time  `json:"updated_at" gorm:"type:timestamp null;default:null"`
-	DeletedAt     *time.Time `json:"deleted_at" gorm:"type:timestamp null;default:null"`
+	ID            uint           `json:"id" gorm:"primary_key"`
+	ProjectCode   string         `json:"project_code" gorm:"not null"`
+	Name          string         `json:"name" gorm:"not null"`
+	Manager       *string        `json:"manager"`        // 管理员，逗号分隔
+	AuthorityUser *string        `json:"authority_user"` // 授权用户，逗号分隔
+	CreatedBy     string         `json:"created_by"`
+	CreatedAt     time.Time      `json:"created_at" gorm:"type:timestamp null;default:null"`
+	UpdatedAt     time.Time      `json:"updated_at" gorm:"type:timestamp null;default:null"`
+	DeletedAt     gorm.DeletedAt `json:"deleted_at" gorm:"type:timestamp null;default:null"`
 }
 
 // HasExpired mean that is this token has been expired

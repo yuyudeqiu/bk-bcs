@@ -19,10 +19,12 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 )
@@ -41,10 +43,10 @@ func (s *Suite) SetupSuite() {
 	db, s.mock, err = sqlmock.New()
 	require.NoError(s.T(), err)
 
-	s.DB, err = gorm.Open("postgres", db)
+	s.DB, err = gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	require.NoError(s.T(), err)
-
-	s.DB.LogMode(true)
 }
 
 func (s *Suite) AfterTest(_, _ string) {
@@ -69,9 +71,9 @@ func (s *Suite) TestGetTokenByCondition() {
 		ExpiresAt: time.Now().Add(time.Hour),
 	}
 	// nolint
-	sqlGet := `SELECT * FROM "bcs_users"  WHERE "bcs_users"."deleted_at" IS NULL AND (("bcs_users"."name" = $1)) ORDER BY "bcs_users"."id" ASC LIMIT 1`
+	sqlGet := `SELECT * FROM "bcs_users" WHERE "bcs_users"."name" = $1 AND "bcs_users"."deleted_at" IS NULL ORDER BY "bcs_users"."id" LIMIT $2`
 	s.mock.ExpectQuery(regexp.QuoteMeta(sqlGet)).
-		WithArgs(token.Name).WillReturnRows(sqlmock.NewRows(
+		WithArgs(token.Name, 1).WillReturnRows(sqlmock.NewRows(
 		[]string{"id", "name", "user_token", "created_at", "updated_at", "expires_at", "deleted_at"}).
 		AddRow(token1.ID, token1.Name, token1.UserToken, token1.CreatedAt, token1.UpdatedAt, token1.ExpiresAt, nil))
 	tokenInDB := tokenStore.GetTokenByCondition(token)
