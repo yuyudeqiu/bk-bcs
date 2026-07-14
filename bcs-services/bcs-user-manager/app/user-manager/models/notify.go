@@ -14,6 +14,8 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 const (
@@ -56,14 +58,14 @@ const (
 
 // BcsTokenNotify is the notified message of bcs token
 type BcsTokenNotify struct {
-	ID         uint        `json:"id" gorm:"primary_key"`
-	Token      string      `json:"token" gorm:"size:64;index"`
-	NotifyType NotifyType  `json:"notify_type" gorm:"comment:'0:email,1:rtx'"`
-	Phase      NotifyPhase `json:"phase" gorm:"comment:'1:overdue,2:day,3:week,4:month'"`
-	Result     bool        `json:"result"`
-	Message    string      `json:"message" gorm:"size:255"`
-	RequestID  string      `json:"request_id" gorm:"size:64"`
-	CreatedAt  time.Time   `json:"created_at"`
-	DeletedAt  *time.Time  `json:"deleted_at" gorm:"index"`
-	UpdatedAt  time.Time   `json:"updated_at"`
+	ID         uint           `json:"id" gorm:"primary_key"`
+	Token      string         `json:"token" gorm:"size:64;index"`
+	NotifyType NotifyType     `json:"notify_type" gorm:"comment:'0:email,1:rtx'"`
+	Phase      NotifyPhase    `json:"phase" gorm:"comment:'1:overdue,2:day,3:week,4:month'"`
+	Result     bool           `json:"result"`
+	Message    string         `json:"message" gorm:"size:255"`
+	RequestID  string         `json:"request_id" gorm:"size:64"`
+	CreatedAt  time.Time      `json:"created_at"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
