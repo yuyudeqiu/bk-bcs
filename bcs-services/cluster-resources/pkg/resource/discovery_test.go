@@ -68,6 +68,33 @@ func TestFilterResByKind(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestFilterAPIResourcesByNameIncludesNativeResources(t *testing.T) {
+	allRes := []*metav1.APIResourceList{
+		{
+			GroupVersion: "networking.k8s.io/v1",
+			APIResources: []metav1.APIResource{{
+				Name: "networkpolicies", Kind: "NetworkPolicy", Namespaced: true,
+			}},
+		},
+		{
+			GroupVersion: "policy/v1",
+			APIResources: []metav1.APIResource{{
+				Name: "poddisruptionbudgets", Kind: "PodDisruptionBudget", Namespaced: true,
+			}},
+		},
+	}
+
+	resources := filterApiResByName("", allRes)
+	assert.Contains(t, resources, map[string]interface{}{
+		"group": "networking.k8s.io", "version": "v1", "resource": "networkpolicies",
+		"kind": "NetworkPolicy", "namespaced": true,
+	})
+	assert.Contains(t, resources, map[string]interface{}{
+		"group": "policy", "version": "v1", "resource": "poddisruptionbudgets",
+		"kind": "PodDisruptionBudget", "namespaced": true,
+	})
+}
+
 // helpers func
 func getResByDiscovery(t *testing.T, rcc *RedisCacheClient) {
 	t.Helper()

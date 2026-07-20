@@ -113,6 +113,29 @@ func (c *ResClient) ListAllWithoutPerm(
 	return result, c.handleErr(ctx, nil)
 }
 
+// ListAllWithoutPermPreferred 获取全部资源列表，不做权限校验，没有数据不报错
+func (c *ResClient) ListAllWithoutPermPreferred(
+	ctx context.Context, namespace string, opts metav1.ListOptions) ([]unstructured.Unstructured, error) {
+	result := make([]unstructured.Unstructured, 0)
+	opts.Limit = int64(defaultLimit)
+	opts.Continue = ""
+	for {
+		ret, err := c.cli.Resource(c.res).Namespace(namespace).List(ctx, opts)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return []unstructured.Unstructured{}, nil
+			}
+			return nil, c.handleErr(ctx, err)
+		}
+		result = append(result, ret.Items...)
+		if ret.GetContinue() == "" {
+			break
+		}
+		opts.Continue = ret.GetContinue()
+	}
+	return result, c.handleErr(ctx, nil)
+}
+
 // Get 获取单个资源
 func (c *ResClient) Get(
 	ctx context.Context, namespace, name string, opts metav1.GetOptions,
@@ -120,6 +143,14 @@ func (c *ResClient) Get(
 	if err := c.permValidate(ctx, action.View, namespace); err != nil {
 		return nil, err
 	}
+	ret, err := c.cli.Resource(c.res).Namespace(namespace).Get(ctx, name, opts)
+	return ret, c.handleErr(ctx, err)
+}
+
+// GetWithoutPerm 获取单个资源
+func (c *ResClient) GetWithoutPerm(
+	ctx context.Context, namespace, name string, opts metav1.GetOptions,
+) (*unstructured.Unstructured, error) {
 	ret, err := c.cli.Resource(c.res).Namespace(namespace).Get(ctx, name, opts)
 	return ret, c.handleErr(ctx, err)
 }
@@ -177,6 +208,33 @@ func (c *ResClient) ApplyWithoutPerm(
 		return nil, errorx.New(errcode.ValidateErr, i18n.GetMsg(ctx, "metadata.name 必须指定"))
 	}
 	old, err := c.cli.Resource(c.res).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return nil, c.handleErr(ctx, err)
+		}
+		ret, errr := c.cli.Resource(c.res).Namespace(namespace).Create(
+			ctx, &unstructured.Unstructured{Object: manifest}, opts)
+		return ret, c.handleErr(ctx, errr)
+	}
+	_ = mapx.SetItems(manifest, "metadata.resourceVersion", old.GetResourceVersion())
+	ret, err := c.cli.Resource(c.res).Namespace(namespace).Update(
+		ctx, &unstructured.Unstructured{Object: manifest}, metav1.UpdateOptions{DryRun: opts.DryRun})
+	return ret, c.handleErr(ctx, err)
+}
+
+// Apply 创建或更新资源
+func (c *ResClient) Apply(
+	ctx context.Context, manifest map[string]interface{}, opts metav1.CreateOptions,
+) (*unstructured.Unstructured, error) {
+	name := mapx.GetStr(manifest, "metadata.name")
+	namespace := mapx.GetStr(manifest, "metadata.namespace")
+	if name == "" {
+		return nil, errorx.New(errcode.ValidateErr, i18n.GetMsg(ctx, "metadata.name 必须指定"))
+	}
+	if err := c.permValidate(ctx, action.Update, namespace); err != nil {
+		return nil, err
+	}
+	old, err := c.cli.Resource(c.res).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		if !errors.IsNotFound(err) {
 			return nil, c.handleErr(ctx, err)
@@ -207,6 +265,17 @@ func (c *ResClient) Delete(ctx context.Context, namespace, name string, opts met
 	if err := c.permValidate(ctx, action.Delete, namespace); err != nil {
 		return err
 	}
+	// 若没有设置 PropagationPolicy，则设置为 Background
+	// https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#deleting-a-replicaset-and-its-pods
+	if opts.PropagationPolicy == nil {
+		policy := metav1.DeletePropagationBackground
+		opts.PropagationPolicy = &policy
+	}
+	return c.handleErr(ctx, c.cli.Resource(c.res).Namespace(namespace).Delete(ctx, name, opts))
+}
+
+// DeleteWithoutPerm 删除单个资源
+func (c *ResClient) DeleteWithoutPerm(ctx context.Context, namespace, name string, opts metav1.DeleteOptions) error {
 	// 若没有设置 PropagationPolicy，则设置为 Background
 	// https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#deleting-a-replicaset-and-its-pods
 	if opts.PropagationPolicy == nil {

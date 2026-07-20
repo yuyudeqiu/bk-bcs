@@ -149,6 +149,252 @@
         ]
       }
     },
+    "/clusterresources/v1/projects/{projectCode}/clusters/{clusterID}/res_object": {
+      "post": {
+        "summary": "CreateApiResourcesObject API",
+        "description": "创建 api resources资源对象",
+        "operationId": "MultiCluster_CreateApiResourcesObject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesCommonResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectCode",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "clusterID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesCreateApiResourcesObjectReq"
+            }
+          }
+        ],
+        "tags": [
+          "MultiCluster"
+        ]
+      },
+      "put": {
+        "summary": "UpdateApiResourcesObject API",
+        "description": "更新 api resources资源对象",
+        "operationId": "MultiCluster_UpdateApiResourcesObject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesCommonResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectCode",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "clusterID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesUpdateApiResourcesObjectReq"
+            }
+          }
+        ],
+        "tags": [
+          "MultiCluster"
+        ]
+      }
+    },
+    "/clusterresources/v1/projects/{projectCode}/clusters/{clusterID}/res_object/{resName}": {
+      "get": {
+        "summary": "GetApiResourcesObject API",
+        "description": "获取 api resources资源对象",
+        "operationId": "MultiCluster_GetApiResourcesObject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesCommonResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectCode",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "clusterID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "format",
+            "description": "资源配置格式（manifest/formData）.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "命名空间.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group",
+            "description": "group.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "description": "version.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource",
+            "description": "resource.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MultiCluster"
+        ]
+      },
+      "delete": {
+        "summary": "DeleteApiResourcesObject API",
+        "description": "删除 api resources资源对象",
+        "operationId": "MultiCluster_DeleteApiResourcesObject",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesCommonResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectCode",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "clusterID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "命名空间.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "kind",
+            "description": "资源类型.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group",
+            "description": "group.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "description": "version.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource",
+            "description": "resource.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MultiCluster"
+        ]
+      }
+    },
     "/clusterresources/v1/projects/{projectCode}/envs": {
       "get": {
         "summary": "Get env manages list",
@@ -503,10 +749,10 @@
         ]
       }
     },
-    "/clusterresources/v1/projects/{projectCode}/multi_cluster_resources/api/resources": {
+    "/clusterresources/v1/projects/{projectCode}/multi_cluster_resources/fetch/api_resources": {
       "post": {
-        "summary": "Get multi cluster resources",
-        "description": "获取多集群原生资源列表",
+        "summary": "Get multi cluster api resources",
+        "description": "获取多集群原生api resources资源列表",
         "operationId": "MultiCluster_FetchMultiClusterApiResources",
         "responses": {
           "200": {
@@ -543,11 +789,51 @@
         ]
       }
     },
+    "/clusterresources/v1/projects/{projectCode}/multi_cluster_resources/fetch/custom_resources": {
+      "post": {
+        "summary": "Get multi cluster resources",
+        "description": "获取多集群指定group、version原生资源列表",
+        "operationId": "MultiCluster_FetchMultiClusterCustomResources",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesCommonResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectCode",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/clusterresourcesFetchMultiClusterCustomResourcesReq"
+            }
+          }
+        ],
+        "tags": [
+          "MultiCluster"
+        ]
+      }
+    },
     "/clusterresources/v1/projects/{projectCode}/multi_cluster_resources/{crd}/custom_objects": {
       "post": {
         "summary": "Get multi cluster custom resources",
         "description": "获取多集群自定义资源列表",
-        "operationId": "MultiCluster_FetchMultiClusterCustomResource",
+        "operationId": "MultiCluster_FetchMultiClusterCustomObject",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -580,7 +866,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/clusterresourcesFetchMultiClusterCustomResourceReq"
+              "$ref": "#/definitions/clusterresourcesFetchMultiClusterCustomObjectReq"
             }
           }
         ],
@@ -10217,6 +10503,45 @@
       "description": "复制模板文件文件夹",
       "title": "CopyTemplateSpaceReq"
     },
+    "clusterresourcesCreateApiResourcesObjectReq": {
+      "type": "object",
+      "properties": {
+        "projectCode": {
+          "type": "string",
+          "title": "项目编码"
+        },
+        "clusterID": {
+          "type": "string",
+          "title": "集群 ID"
+        },
+        "rawData": {
+          "type": "object",
+          "title": "资源配置信息"
+        },
+        "format": {
+          "type": "string",
+          "title": "资源配置格式（manifest/formData）"
+        },
+        "namespaced": {
+          "type": "boolean",
+          "title": "是否属于命名空间作用域"
+        },
+        "group": {
+          "type": "string",
+          "title": "group"
+        },
+        "version": {
+          "type": "string",
+          "title": "version"
+        },
+        "resource": {
+          "type": "string",
+          "title": "resource"
+        }
+      },
+      "description": "创建 api resources资源对象",
+      "title": "CreateApiResourcesObjectReq"
+    },
     "clusterresourcesCreateEnvManageReq": {
       "type": "object",
       "properties": {
@@ -10550,33 +10875,26 @@
           "type": "string",
           "title": "项目编码"
         },
-        "clusterNamespaces": {
+        "clusterIDs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/clusterresourcesClusterNamespaces"
+            "type": "string"
           },
-          "title": "集群和命名空间"
+          "title": "多集群"
         },
         "onlyCrd": {
           "type": "boolean",
           "title": "是否只列出crd资源"
         },
-        "viewID": {
+        "resourceName": {
           "type": "string",
-          "title": "viewID"
-        },
-        "labelSelector": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/clusterresourcesLabelSelector"
-          },
-          "title": "标签选择器"
+          "title": "资源对象名称"
         }
       },
       "description": "获取多集群api资源请求体",
       "title": "FetchMultiClusterApiResourcesReq"
     },
-    "clusterresourcesFetchMultiClusterCustomResourceReq": {
+    "clusterresourcesFetchMultiClusterCustomObjectReq": {
       "type": "object",
       "properties": {
         "projectCode": {
@@ -10651,7 +10969,85 @@
         }
       },
       "description": "获取多集群自定义资源请求体",
-      "title": "FetchMultiClusterCustomResourceReq"
+      "title": "FetchMultiClusterCustomObjectReq"
+    },
+    "clusterresourcesFetchMultiClusterCustomResourcesReq": {
+      "type": "object",
+      "properties": {
+        "projectCode": {
+          "type": "string",
+          "title": "项目编码"
+        },
+        "clusterNamespaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/clusterresourcesClusterNamespaces"
+          },
+          "title": "集群和命名空间"
+        },
+        "namespaced": {
+          "type": "boolean",
+          "title": "namespaced"
+        },
+        "viewID": {
+          "type": "string",
+          "title": "viewID"
+        },
+        "creator": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "creator"
+        },
+        "labelSelector": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/clusterresourcesLabelSelector"
+          },
+          "title": "标签选择器"
+        },
+        "name": {
+          "type": "string",
+          "title": "name"
+        },
+        "sortBy": {
+          "type": "string",
+          "title": "sortBy"
+        },
+        "order": {
+          "type": "string",
+          "title": "desc"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int64",
+          "title": "limit"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int64",
+          "title": "offset"
+        },
+        "createSource": {
+          "$ref": "#/definitions/clusterresourcesCreateSource",
+          "title": "createSource"
+        },
+        "group": {
+          "type": "string",
+          "title": "group"
+        },
+        "version": {
+          "type": "string",
+          "title": "version"
+        },
+        "resource": {
+          "type": "string",
+          "title": "resource"
+        }
+      },
+      "description": "获取多集群自定义资源请求体",
+      "title": "FetchMultiClusterCustomResourcesReq"
     },
     "clusterresourcesFetchMultiClusterResourceReq": {
       "type": "object",
@@ -11293,6 +11689,41 @@
           "title": "模板文件版本"
         }
       }
+    },
+    "clusterresourcesUpdateApiResourcesObjectReq": {
+      "type": "object",
+      "properties": {
+        "projectCode": {
+          "type": "string",
+          "title": "项目编码"
+        },
+        "clusterID": {
+          "type": "string",
+          "title": "集群 ID"
+        },
+        "rawData": {
+          "type": "object",
+          "title": "资源配置信息"
+        },
+        "format": {
+          "type": "string",
+          "title": "资源配置格式（manifest/formData）"
+        },
+        "group": {
+          "type": "string",
+          "title": "group"
+        },
+        "version": {
+          "type": "string",
+          "title": "version"
+        },
+        "resource": {
+          "type": "string",
+          "title": "resource"
+        }
+      },
+      "description": "更新 api resources资源对象",
+      "title": "UpdateApiResourcesObjectReq"
     },
     "clusterresourcesUpdateEnvManageReq": {
       "type": "object",

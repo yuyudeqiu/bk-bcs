@@ -27,6 +27,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -109,6 +111,20 @@ func (c *CRDClient) List(ctx context.Context, opts metav1.ListOptions) (map[stri
 	return ret.UnstructuredContent(), nil
 }
 
+// ListCrdResources xxx
+func ListCrdResources(
+	ctx context.Context, clusterID string, opts metav1.ListOptions) (*v1.CustomResourceDefinitionList, error) {
+
+	clusterConf := res.NewClusterConf(clusterID)
+	crdClient, err := clientset.NewForConfig(clusterConf.Rest)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取 CRD 资源
+	return crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
+}
+
 // Get xxx
 func (c *CRDClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (map[string]interface{}, error) {
 	// 共享集群 CRD 获取，如果在允许的数类内，不做权限检查
@@ -128,6 +144,17 @@ func (c *CRDClient) Get(ctx context.Context, name string, opts metav1.GetOptions
 		}
 		return ret.UnstructuredContent(), nil
 	}
+	// 普通集群的 CRD，按集群域资源检查权限
+	ret, err := c.ResClient.Get(ctx, "", name, opts)
+	if err != nil {
+		return nil, err
+	}
+	return ret.UnstructuredContent(), nil
+}
+
+// GetWihtNoCheck xxx
+func (c *CRDClient) GetWihtNoCheck(
+	ctx context.Context, name string, opts metav1.GetOptions) (map[string]interface{}, error) {
 	// 普通集群的 CRD，按集群域资源检查权限
 	ret, err := c.ResClient.Get(ctx, "", name, opts)
 	if err != nil {
@@ -350,6 +377,38 @@ func GetClustersCRDInfo(ctx context.Context, clusterIDs []string, crdName string
 			}
 			ctx = context.WithValue(ctx, ctxkey.ClusterKey, cluterInfo)
 			manifest, err := NewCRDCliByClusterID(ctx, clusterID).Get(ctx, crdName, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			mux.Lock()
+			defer mux.Unlock()
+			result = manifest
+			return nil
+		})
+	}
+	if err := errGroup.Wait(); err != nil && result == nil {
+		return nil, err
+	}
+
+	return formatter.FormatCRD(result), nil
+}
+
+// GetClustersCRDInfoDirect 直接获取多集群 CRD 基础信息
+func GetClustersCRDInfoDirect(
+	ctx context.Context, clusterIDs []string, crdName string) (map[string]interface{}, error) {
+	errGroup := errgroup.Group{}
+	mux := sync.Mutex{}
+	var result map[string]interface{}
+	for _, v := range clusterIDs {
+		clusterID := v
+		errGroup.Go(func() error {
+			clusterInfo, err := cluster.GetClusterInfo(ctx, clusterID)
+			if err != nil {
+				return err
+			}
+			clusterCtx := context.WithValue(ctx, ctxkey.ClusterKey, clusterInfo)
+			manifest, err := NewCRDCliByClusterID(clusterCtx, clusterID).
+				GetWihtNoCheck(clusterCtx, crdName, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}

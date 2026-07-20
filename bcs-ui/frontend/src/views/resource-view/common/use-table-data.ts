@@ -3,10 +3,11 @@ import { ref } from 'vue';
 import { ISubscribeData } from './use-subscribe';
 
 import {
+  multiClusterAPIResources,
   multiClusterCustomResourceDefinition,
+  multiClusterCustomResources,
   multiClusterResources,
   multiClusterResourcesCount,
-  multiClusterResourcesCRD,
 } from '@/api/modules/cluster-resource';
 import $store from '@/store';
 
@@ -110,10 +111,13 @@ export default function useTableData() {
     return (res.data || defaultManifestData) as ISubscribeData;
   };
 
-  const getMultiClusterResourcesCRD = async (params: MultiClusterResourcesType & {
+  const getMultiClusterCustomResourceDefinition = async (params: MultiClusterResourcesType & {
     $crd: string
   }) => {
-    const res = await multiClusterResourcesCRD(params, { needRes: true, cancelPrevious: false }).catch(() => ({
+    const res = await multiClusterCustomResourceDefinition(
+      params,
+      { needRes: true, cancelPrevious: false, cancelWhenRouteChange: false },
+    ).catch(() => ({
       data: {
         manifest: {},
         manifestExt: {},
@@ -125,13 +129,23 @@ export default function useTableData() {
     return (res.data || defaultManifestData) as ISubscribeData;
   };
 
-  const getMultiClusterCustomResourceDefinition = async (params: MultiClusterResourcesType & {
-    $crd: string
-  }) => {
-    const res = await multiClusterCustomResourceDefinition(
-      params,
+  // 更多资源
+  async function getMultiClusterAPIResources(clusterIDs: string[], onlyCrd: boolean) {
+    if (!clusterIDs.length) return { resources: {} };
+    const res = await multiClusterAPIResources(
+      {
+        clusterIDs,
+        onlyCrd,
+      },
       { needRes: true, cancelPrevious: false, cancelWhenRouteChange: false },
-    ).catch(() => ({
+    ).catch(() => ({ data: {} }));
+    data.value = res.data || { resources: {} };
+    webAnnotations.value = res.webAnnotations || { perms: {} };
+    return (res.data || { resources: {} });
+  };
+
+  const getMultiClusterCustomResources = async (params: MultiClusterResourcesType) => {
+    const res = await multiClusterCustomResources(params, { needRes: true, cancelPrevious: false }).catch(() => ({
       data: {
         manifest: {},
         manifestExt: {},
@@ -160,8 +174,9 @@ export default function useTableData() {
     fetchCRDData,
     handleFetchCustomResourceList,
     getMultiClusterResources,
-    getMultiClusterResourcesCRD,
     getMultiClusterResourcesCount,
     getMultiClusterCustomResourceDefinition,
+    getMultiClusterAPIResources,
+    getMultiClusterCustomResources,
   };
 }

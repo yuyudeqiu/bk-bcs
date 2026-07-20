@@ -192,11 +192,12 @@
 <script lang="ts">
 /* eslint-disable no-unused-expressions */
 import yamljs from 'js-yaml';
-import { computed, defineComponent, onBeforeUnmount, onMounted, ref, toRefs, watch } from 'vue';
+import { computed, defineComponent, onBeforeUnmount, onMounted, PropType, ref, toRefs, watch } from 'vue';
 
 import EditorStatus from './editor-status.vue';
 import FixedButton from './fixed-button.vue';
 
+import { createCustomResource, customResourceDetail, updateCustomResource } from '@/api/modules/cluster-resource';
 import $bkMessage from '@/common/bkmagic';
 import { copyText } from '@/common/util';
 import BcsMd from '@/components/bcs-md/index.vue';
@@ -270,6 +271,30 @@ export default defineComponent({
       default: '',
       required: true,
     },
+    // CRD资源分两种，普通和定制，customized 用来区分普通和定制
+    customized: {
+      type: [Boolean, String],
+      default: false,
+    },
+    // CRD资源的版本
+    version: {
+      type: String,
+      default: '',
+    },
+    // CRD资源的分组
+    group: {
+      type: String,
+      default: '',
+    },
+    resource: {
+      type: String,
+      default: '',
+    },
+    // CRD资源的作用域
+    scope: {
+      type: String as PropType<'Namespaced'|'Cluster'>,
+      default: '',
+    },
   },
   setup(props, ctx) {
     const {
@@ -284,6 +309,11 @@ export default defineComponent({
       formUpdate,
       clusterId,
       defaultOriginal,
+      customized,
+      scope,
+      version,
+      group,
+      resource,
     } = toRefs(props);
     const { clientHeight } = document.body;
 
@@ -357,7 +387,22 @@ export default defineComponent({
       if (!isEdit.value) return null;
       isLoading.value = true;
       let res: any = null;
-      if (type.value === 'crd') {
+      if (String(customized.value) === 'true') {
+        res = await customResourceDetail({
+          format: 'manifest',
+          $clusterId: clusterId.value,
+          $name: name.value,
+          namespace: namespace.value,
+          group: group.value,
+          version: version.value,
+          resource: resource.value,
+        }, { needRes: true }).catch(() => ({
+          data: {
+            manifest: {},
+            manifestExt: {},
+          },
+        }));
+      } else if (type.value === 'crd') {
         res = await $store.dispatch('dashboard/retrieveCustomResourceDetail', {
           $crd: crd.value,
           $category: category.value,
@@ -555,7 +600,21 @@ export default defineComponent({
     };
     const handleCreateResource = async () => {
       let result = false;
-      if (type.value === 'crd') {
+      if (String(customized.value) === 'true') { // 创建普通crd资源
+        result = await createCustomResource({
+          $clusterId: clusterId.value,
+          format: 'manifest',
+          group: group.value,
+          version: version.value,
+          resource: resource.value,
+          namespaced: scope.value === 'Namespaced',
+          rawData: detail.value,
+        }).catch((err) => {
+          editorErr.value.type = 'http';
+          editorErr.value.message = err?.response?.data?.message || err?.message;
+          return false;
+        });
+      } else if (type.value === 'crd') { // 创建定制crd资源 bscpConfig、gameDeployment、gameStatefulSet、hookTemplate
         result = await $store.dispatch('dashboard/customResourceCreate', {
           $crd: crd.value,
           $category: category.value,
@@ -605,7 +664,20 @@ export default defineComponent({
         defaultInfo: true,
         confirmFn: async () => {
           let result = false;
-          if (type.value === 'crd') {
+          if (String(customized.value) === 'true') {
+            result = await updateCustomResource({
+              $clusterId: clusterId.value,
+              group: group.value,
+              version: version.value,
+              resource: resource.value,
+              format: 'manifest',
+              rawData: detail.value,
+            }).catch((err) => {
+              editorErr.value.type = 'http';
+              editorErr.value.message = err?.response?.data?.message || err?.message;
+              return false;
+            });
+          } else if (type.value === 'crd') {
             result = await $store.dispatch('dashboard/customResourceUpdate', {
               $crd: crd.value,
               $category: category.value,
@@ -670,6 +742,7 @@ export default defineComponent({
     };
     // 切换到表单模式
     const handleChangeMode = () => {
+      const crdData =  props.crd ? { crd: props.crd } : {};
       $router.replace({
         name: 'dashboardFormResourceUpdate',
         params: {
@@ -682,6 +755,7 @@ export default defineComponent({
           category: category.value,
           kind: kind.value,
           formUpdate: formUpdate.value as any,
+          ...crdData,
         },
       });
     };

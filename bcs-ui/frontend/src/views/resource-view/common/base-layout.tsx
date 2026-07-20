@@ -14,7 +14,7 @@ import useSearch from './use-search';
 import { ISubscribeData } from './use-subscribe';
 import useTableData from './use-table-data';
 
-import { restartGameWorkloads, restartWorkloads } from '@/api/modules/cluster-resource';
+import { customResourceDetail, deleteCRDResource, restartGameWorkloads, restartWorkloads } from '@/api/modules/cluster-resource';
 import $bkMessage from '@/common/bkmagic';
 import { bus } from '@/common/bus';
 import ContentHeader from '@/components/layout/Header.vue';
@@ -81,6 +81,21 @@ export default defineComponent({
       type: String,
       default: 'overview',
     },
+    // CRD信息
+    crdOptions: {
+      type: Object as PropType<{
+        group: string,
+        version: string,
+        resource: string,
+        namespaced: boolean,
+      }>,
+      default: () => ({}),
+    },
+    // CRD资源分两种，普通和定制，customized 用来区分普通和定制
+    customized: {
+      type: [Boolean, String],
+      default: false,
+    },
   },
   setup(props) {
     const {
@@ -90,6 +105,8 @@ export default defineComponent({
       defaultActiveDetailType,
       crd,
       scope,
+      crdOptions,
+      customized,
     } = toRefs(props);
     const { clusterNameMap } = useCluster();
     const isViewConfigShow = computed(() => $store.state.isViewConfigShow);
@@ -232,7 +249,7 @@ export default defineComponent({
       isLoading,
       webAnnotations,
       getMultiClusterResources,
-      getMultiClusterResourcesCRD,
+      getMultiClusterCustomResources,
     } = useTableData();
     const curPageData = computed(() => data.value.manifest?.items || []);
     // 动态表格字段
@@ -246,16 +263,16 @@ export default defineComponent({
 
       if (type.value === 'crd') {
         // 自定义资源
-        resourceData = await getMultiClusterResourcesCRD({
+        resourceData = await getMultiClusterCustomResources({
           ...curViewData.value,
           ...sortData.value,
+          ...crdOptions.value,
           status: filters.value.status || [],
-          $crd: crd.value,
           offset: (pageConf.value.current - 1) * pageConf.value.limit,
           limit: pageConf.value.limit,
         });
         // 设置资源数量（批量获取的接口比较慢，这里单个资源先出来就先回显数量）
-        if (['GameDeployment', 'GameStatefulSet', 'HookTemplate'].includes(kind.value)) {
+        if (['GameDeployment', 'GameStatefulSet', 'HookTemplate', 'BscpConfig'].includes(kind.value)) {
           bus.$emit('set-resource-count', kind.value, resourceData.total);
         }
       } else {
@@ -286,7 +303,7 @@ export default defineComponent({
     // 获取额外字段方法
     const handleGetExtData = (uid: string, ext?: string, defaultData?: any) => {
       const extData = data.value.manifestExt?.[uid] || {};
-      return ext ? (extData[ext] || defaultData) : extData;
+      return ext ? (extData[ext] ?? defaultData) : extData;
     };
 
     // 跳转详情界面
@@ -361,15 +378,23 @@ export default defineComponent({
       detailLoading.value = false;
       return res.data?.manifest;
     };
-    // 自定义资源详情
-    const handleGetCustomObjectDetail = async ({ namespace, name, clusterID }) => {
+    // 自定义资源详情(源码模式)
+    const handleGetCustomObjectDetail = async ({ namespace, name, clusterID, version, resource, group }) => {
       detailLoading.value = true;
-      const res = await $store.dispatch('dashboard/getCustomObjectResourceDetail', {
-        $crdName: crd.value,
-        $namespaceId: namespace,
-        $name: name,
+      const res = await customResourceDetail({
+        format: 'manifest',
         $clusterId: clusterID,
-      });
+        $name: name,
+        group,
+        namespace,
+        version,
+        resource,
+      }, { needRes: true }).catch(() => ({
+        data: {
+          manifest: {},
+          manifestExt: {},
+        },
+      }));
       detailLoading.value = false;
       return res.data?.manifest;
     };
@@ -387,6 +412,9 @@ export default defineComponent({
           name: row?.metadata?.name,
           namespace,
           clusterID: curDetailRow.value.extData?.clusterID,
+          version: crdOptions.value?.version,
+          resource: crdOptions.value?.resource,
+          group: crdOptions.value?.group,
         });
       } else {
         curDetailRow.value.data = await handleGetResourceDetail({
@@ -461,6 +489,11 @@ export default defineComponent({
       const { name, namespace, uid } = row.metadata || {};
       const editMode = handleGetExtData(uid, 'editMode');
       if (editMode === 'yaml') {
+        const crdQuery = {
+          group: crdOptions.value.group,
+          version: crdOptions.value.version,
+          resource: crdOptions.value.resource,
+        };
         $router.push({
           name: 'dashboardResourceUpdate',
           params: {
@@ -473,6 +506,8 @@ export default defineComponent({
             category: category.value,
             kind: kind.value,
             crd: crd.value,
+            customized: String(customized.value),
+            ...crdQuery,
           },
         });
       } else {
@@ -524,7 +559,18 @@ export default defineComponent({
     const confirmDelete = async () => {
       const { name, namespace, uid } = curDetailRow.value.data?.metadata || {};
       let result = false;
-      if (type.value === 'crd') {
+      if (String(customized.value) === 'true') {
+        result = await deleteCRDResource({
+          namespace,
+          kind: kind.value,
+          $clusterId: handleGetExtData(uid, 'clusterID'),
+          $name: name,
+          group: crdOptions.value.group,
+          version: crdOptions.value.version,
+          resource: crdOptions.value.resource,
+        }).then(() => true)
+          .catch(() => false);
+      } else if (type.value === 'crd') {
         result = await $store.dispatch('dashboard/customResourceDelete', {
           namespace,
           $crd: crd.value,
@@ -999,6 +1045,8 @@ export default defineComponent({
           crd={this.crd}
           scope={this.scope}
           formUpdate={this.formUpdate}
+          customized={this.customized}
+          crdOptions={this.crdOptions}
           cancel={() => this.showCreateDialog = false} />
       </div>
     );
