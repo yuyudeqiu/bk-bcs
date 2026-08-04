@@ -130,18 +130,32 @@ export default function useTableData() {
   };
 
   // 更多资源
-  async function getMultiClusterAPIResources(clusterIDs: string[], onlyCrd: boolean) {
-    if (!clusterIDs.length) return { resources: {} };
+  async function getMultiClusterAPIResources(clusterNamespaces: IClusterNamespace[], onlyCrd: boolean) {
+    if (!clusterNamespaces.length) return { resources: {} };
     const res = await multiClusterAPIResources(
       {
-        clusterIDs,
+        clusterNamespaces,
         onlyCrd,
       },
       { needRes: true, cancelPrevious: false, cancelWhenRouteChange: false },
     ).catch(() => ({ data: {} }));
-    data.value = res.data || { resources: {} };
+    // v1.30.x 接口按集群返回资源 Map 数组，菜单侧需要合并并去重。
+    const resources: Record<string, any[]> = {};
+    (res.data?.resources || []).forEach((clusterResources) => {
+      Object.entries<any[]>(clusterResources).forEach(([groupVersion, items]) => {
+        const currentItems = resources[groupVersion] || [];
+        items.forEach((item) => {
+          const key = `${item.group}/${item.version}/${item.resource}/${item.kind}`;
+          if (!currentItems.some(current => `${current.group}/${current.version}/${current.resource}/${current.kind}` === key)) {
+            currentItems.push(item);
+          }
+        });
+        resources[groupVersion] = currentItems;
+      });
+    });
+    data.value = { ...(res.data || {}), resources };
     webAnnotations.value = res.webAnnotations || { perms: {} };
-    return (res.data || { resources: {} });
+    return data.value;
   };
 
   const getMultiClusterCustomResources = async (params: MultiClusterResourcesType) => {

@@ -749,10 +749,10 @@
         ]
       }
     },
-    "/clusterresources/v1/projects/{projectCode}/multi_cluster_resources/fetch/api_resources": {
+    "/clusterresources/v1/projects/{projectCode}/multi_cluster_resources/api/resources": {
       "post": {
-        "summary": "Get multi cluster api resources",
-        "description": "获取多集群原生api resources资源列表",
+        "summary": "Get multi cluster resources",
+        "description": "获取多集群原生资源列表",
         "operationId": "MultiCluster_FetchMultiClusterApiResources",
         "responses": {
           "200": {
@@ -833,7 +833,7 @@
       "post": {
         "summary": "Get multi cluster custom resources",
         "description": "获取多集群自定义资源列表",
-        "operationId": "MultiCluster_FetchMultiClusterCustomObject",
+        "operationId": "MultiCluster_FetchMultiClusterCustomResource",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -866,7 +866,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/clusterresourcesFetchMultiClusterCustomObjectReq"
+              "$ref": "#/definitions/clusterresourcesFetchMultiClusterCustomResourceReq"
             }
           }
         ],
@@ -10875,26 +10875,33 @@
           "type": "string",
           "title": "项目编码"
         },
-        "clusterIDs": {
+        "clusterNamespaces": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/clusterresourcesClusterNamespaces"
           },
-          "title": "多集群"
+          "title": "集群和命名空间"
         },
         "onlyCrd": {
           "type": "boolean",
           "title": "是否只列出crd资源"
         },
-        "resourceName": {
+        "viewID": {
           "type": "string",
-          "title": "资源对象名称"
+          "title": "viewID"
+        },
+        "labelSelector": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/clusterresourcesLabelSelector"
+          },
+          "title": "标签选择器"
         }
       },
       "description": "获取多集群api资源请求体",
       "title": "FetchMultiClusterApiResourcesReq"
     },
-    "clusterresourcesFetchMultiClusterCustomObjectReq": {
+    "clusterresourcesFetchMultiClusterCustomResourceReq": {
       "type": "object",
       "properties": {
         "projectCode": {
@@ -10969,7 +10976,7 @@
         }
       },
       "description": "获取多集群自定义资源请求体",
-      "title": "FetchMultiClusterCustomObjectReq"
+      "title": "FetchMultiClusterCustomResourceReq"
     },
     "clusterresourcesFetchMultiClusterCustomResourcesReq": {
       "type": "object",

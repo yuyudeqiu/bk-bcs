@@ -169,9 +169,28 @@ func (h *Handler) FetchMultiClusterCustomResources(ctx context.Context,
 // FetchMultiClusterApiResources Fetch multi cluster api resources
 func (h *Handler) FetchMultiClusterApiResources(ctx context.Context,
 	req *clusterRes.FetchMultiClusterApiResourcesReq, resp *clusterRes.CommonResp) (err error) {
+	// 获取视图信息
+	view := &entity.View{}
+	if req.GetViewID() != "" {
+		view, err = h.model.GetView(ctx, req.GetViewID())
+		if err != nil {
+			return err
+		}
+	}
+	filter := QueryFilter{
+		LabelSelector: req.GetLabelSelector(),
+	}
+	// 是否仅获取crd资源
+	kind := ""
+	if req.GetOnlyCrd() {
+		kind = constants.CRD
+	}
+	clusterNS := filterClusteredNamespace(req.GetClusterNamespaces(), string(getScopedByKind(kind)))
 
+	// from api server
+	var query = NewAPIServerQuery(clusterNS, filter, viewQueryToQueryFilter(view.Filter))
 	var data map[string]interface{}
-	data, err = FetchApiResourcesPreferred(ctx, req.OnlyCrd, req.ResourceName, req.ClusterIDs)
+	data, err = query.FetchApiResources(ctx, kind)
 	if err != nil {
 		return err
 	}
@@ -187,9 +206,9 @@ func (h *Handler) FetchMultiClusterApiResources(ctx context.Context,
 	return err
 }
 
-// FetchMultiClusterCustomObject Fetch multi cluster custom object
-func (h *Handler) FetchMultiClusterCustomObject(ctx context.Context,
-	req *clusterRes.FetchMultiClusterCustomObjectReq,
+// FetchMultiClusterCustomResource Fetch multi cluster custom resource
+func (h *Handler) FetchMultiClusterCustomResource(ctx context.Context,
+	req *clusterRes.FetchMultiClusterCustomResourceReq,
 	resp *clusterRes.CommonResp) (err error) {
 	// 获取视图信息
 	view := &entity.View{}
