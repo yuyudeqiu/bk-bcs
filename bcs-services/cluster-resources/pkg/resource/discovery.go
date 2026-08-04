@@ -387,7 +387,8 @@ func filterApiResByKind(kind, crdName string, allRes []*metav1.APIResourceList) 
 			if strings.Contains(apiResList.GroupVersion, "/") {
 				group, ver = stringx.Partition(apiResList.GroupVersion, "/")
 			}
-			if (kind != "" && res.Kind == kind) || (crdName != "" && res.Name == crdName) {
+			listAll := kind == "" && crdName == ""
+			if listAll || (kind != "" && res.Kind == kind) || (crdName != "" && res.Name == crdName) {
 				resources[apiResList.GroupVersion] = append(resources[apiResList.GroupVersion],
 					map[string]interface{}{
 						"group":      group,
@@ -396,7 +397,9 @@ func filterApiResByKind(kind, crdName string, allRes []*metav1.APIResourceList) 
 						"resource":   res.Name,
 						"namespaced": res.Namespaced,
 					})
-				return resources
+				if !listAll {
+					return resources
+				}
 			}
 		}
 	}

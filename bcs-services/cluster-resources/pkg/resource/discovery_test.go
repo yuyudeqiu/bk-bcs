@@ -68,6 +68,29 @@ func TestFilterResByKind(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestFilterApiResByKind(t *testing.T) {
+	allRes := []*metav1.APIResourceList{{
+		GroupVersion: "v1",
+		APIResources: []metav1.APIResource{{Name: "pods", Kind: ResKindPo, Namespaced: true}},
+	}, {
+		GroupVersion: "apps/v1",
+		APIResources: []metav1.APIResource{{Name: "deployments", Kind: ResKindDeploy, Namespaced: true}},
+	}}
+
+	resources := filterApiResByKind("", "", allRes)
+	assert.Len(t, resources, 2)
+	assert.Equal(t, "pods", resources["v1"][0]["resource"])
+	assert.Equal(t, "deployments", resources["apps/v1"][0]["resource"])
+
+	resources = filterApiResByKind(ResKindDeploy, "", allRes)
+	assert.Len(t, resources, 1)
+	assert.Equal(t, "deployments", resources["apps/v1"][0]["resource"])
+
+	resources = filterApiResByKind("", "pods", allRes)
+	assert.Len(t, resources, 1)
+	assert.Equal(t, ResKindPo, resources["v1"][0]["kind"])
+}
+
 // helpers func
 func getResByDiscovery(t *testing.T, rcc *RedisCacheClient) {
 	t.Helper()
