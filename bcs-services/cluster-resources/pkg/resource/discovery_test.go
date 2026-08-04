@@ -71,14 +71,20 @@ func TestFilterResByKind(t *testing.T) {
 func TestFilterApiResByKind(t *testing.T) {
 	allRes := []*metav1.APIResourceList{{
 		GroupVersion: "v1",
-		APIResources: []metav1.APIResource{{Name: "pods", Kind: ResKindPo, Namespaced: true}},
+		APIResources: []metav1.APIResource{
+			{Name: "pods", Kind: ResKindPo, Namespaced: true, Verbs: metav1.Verbs{"get", "list"}},
+			{Name: "tokenreviews", Kind: "TokenReview", Verbs: metav1.Verbs{"create"}},
+		},
 	}, {
 		GroupVersion: "apps/v1",
-		APIResources: []metav1.APIResource{{Name: "deployments", Kind: ResKindDeploy, Namespaced: true}},
+		APIResources: []metav1.APIResource{{
+			Name: "deployments", Kind: ResKindDeploy, Namespaced: true, Verbs: metav1.Verbs{"get", "list"},
+		}},
 	}}
 
 	resources := filterApiResByKind("", "", allRes)
 	assert.Len(t, resources, 2)
+	assert.Len(t, resources["v1"], 1)
 	assert.Equal(t, "pods", resources["v1"][0]["resource"])
 	assert.Equal(t, "deployments", resources["apps/v1"][0]["resource"])
 

@@ -36,6 +36,7 @@ import (
 	log "github.com/Tencent/bk-bcs/bcs-services/cluster-resources/pkg/logging"
 	"github.com/Tencent/bk-bcs/bcs-services/cluster-resources/pkg/util/errorx"
 	"github.com/Tencent/bk-bcs/bcs-services/cluster-resources/pkg/util/mapx"
+	"github.com/Tencent/bk-bcs/bcs-services/cluster-resources/pkg/util/slice"
 	"github.com/Tencent/bk-bcs/bcs-services/cluster-resources/pkg/util/stringx"
 )
 
@@ -382,6 +383,10 @@ func filterApiResByKind(kind, crdName string, allRes []*metav1.APIResourceList) 
 	resources := make(map[string]GroupKindVersionResource, 0)
 	for _, apiResList := range allRes {
 		for _, res := range apiResList.APIResources {
+			// 资源视图需要查询列表，忽略 TokenReview 等仅支持 create 的 API。
+			if !slice.StringInSlice("list", []string(res.Verbs)) {
+				continue
+			}
 			// 可能存在如 v1 这种，只有 version，group 为空的情况
 			group, ver := "", apiResList.GroupVersion
 			if strings.Contains(apiResList.GroupVersion, "/") {
