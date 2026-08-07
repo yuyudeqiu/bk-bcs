@@ -144,7 +144,7 @@ go test -tags=gaussdb ./tests/iammigration -run TestIAMMigrateGaussDB -count=1 -
 
 自动清理只会删除名称以默认测试前缀（`bcs_user_test`、`bcs_user_migration_test`、`bcs_user_iam_migration_test`）开头的数据库。自定义测试库名时，额外设置 `BCS_TEST_MYSQL_DBNAME_PREFIX=<custom_prefix>`；可用逗号分隔多个前缀。
 
-## 5. OceanBase 与 IAM Migration 适配说明
+## 5. OceanBase、GoldenDB 与 IAM Migration 适配说明
 
 ### 5.1 为什么需要适配
 
@@ -165,13 +165,13 @@ FUNCTION GET_LOCK does not exist
 
 ### 5.2 服务代码如何处理
 
-业务表连接仍使用 MySQL driver。配置 `database_config.db_type` 为 `ob` 或 `oceanbase` 时：
+业务表连接仍使用 MySQL driver。OceanBase 可将 `database_config.db_type` 配置为 `ob` 或 `oceanbase`，GoldenDB 可配置为 `dg` 或 `goldendb`。这两类数据库使用结构化 `database_config` 时，应省略 `mysql_dsn`（部署环境中的 `coreDatabaseDsn`）或将其保持为空。
 
-- `sqlstore.InitCoreDatabase` 将 OceanBase 按 MySQL 兼容数据库连接。
+- `sqlstore.InitCoreDatabase` 将 OceanBase 和 GoldenDB 按 MySQL 兼容数据库连接。
 - IAM migration 使用 `iam-go-sdk` 的 `MigrateWithConfig(...)`。
 - `iammigrate.Config.NoLock` 设置为 `true`，跳过 `GET_LOCK` / `RELEASE_LOCK`。
 
-非 OceanBase 场景仍使用原来的 `u.IamPermClient.Migrate(...)`，保持 MySQL 原行为不变。
+普通 MySQL 场景仍使用原来的 `u.IamPermClient.Migrate(...)`，保持原行为不变。
 
 ### 5.3 为什么修改 iam-go-sdk 依赖
 

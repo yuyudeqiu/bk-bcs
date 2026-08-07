@@ -295,7 +295,7 @@ func (u *UserManager) migrate() {
 // MigrateIAM migrates IAM models according to the configured database type.
 func (u *UserManager) MigrateIAM(sqlDB *sql.DB, d source.Driver, migrateTable string, timeout time.Duration,
 	tempVar interface{}) error {
-	if !isOceanBaseDBType(u.config.DatabaseConfig.DBType) {
+	if !requiresLocklessIAMMigration(u.config.DatabaseConfig.DBType) {
 		return u.IamPermClient.Migrate(sqlDB, d, migrateTable, timeout, tempVar)
 	}
 
@@ -308,9 +308,9 @@ func (u *UserManager) MigrateIAM(sqlDB *sql.DB, d source.Driver, migrateTable st
 	})
 }
 
-func isOceanBaseDBType(dbType string) bool {
+func requiresLocklessIAMMigration(dbType string) bool {
 	switch strings.ToLower(dbType) {
-	case "ob", "oceanbase":
+	case "ob", "oceanbase", "dg", "goldendb":
 		return true
 	default:
 		return false

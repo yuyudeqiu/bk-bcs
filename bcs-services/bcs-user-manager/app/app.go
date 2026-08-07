@@ -107,13 +107,8 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	userMgrConfig.Activity = op.Activity
 	userMgrConfig.EnableTokenSync = op.EnableTokenSync
 
-	// MySQL DSN 为空时，使用结构化配置
-	if userMgrConfig.DSN == "" {
-		dbConfig, aErr := parseDatabaseConfig(op.DatabaseConfig)
-		if aErr != nil {
-			return nil, fmt.Errorf("error parsing database config and exit: %s", aErr.Error())
-		}
-		userMgrConfig.DatabaseConfig = dbConfig
+	if err := parseDatabaseConnectionConfig(op, userMgrConfig); err != nil {
+		return nil, err
 	}
 
 	config.Tke = op.TKE
@@ -127,12 +122,6 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 		return nil, fmt.Errorf("error decrypting tke secretKey and exit: %s", err.Error())
 	}
 	config.Tke.SecretKey = string(secretKey)
-
-	dsn, err := encrypt.DesDecryptFromBase([]byte(op.DSN))
-	if err != nil {
-		return nil, fmt.Errorf("error decrypting db config and exit: %s", err.Error())
-	}
-	userMgrConfig.DSN = string(dsn)
 
 	redisDSN, err := encrypt.DesDecryptFromBase([]byte(op.RedisDSN))
 	if err != nil {
@@ -205,6 +194,24 @@ func parseRedisConfig(redisOp options.RedisConfig) (config.RedisConfig, error) {
 	conf.MinIdleConns = redisOp.MinIdleConns
 	conf.IdleTimeout = redisOp.IdleTimeout
 	return conf, nil
+}
+
+func parseDatabaseConnectionConfig(op *options.UserManagerOptions, conf *config.UserMgrConfig) error {
+	if op.DSN != "" {
+		dsn, err := encrypt.DesDecryptFromBase([]byte(op.DSN))
+		if err != nil {
+			return fmt.Errorf("error decrypting db config and exit: %s", err.Error())
+		}
+		conf.DSN = string(dsn)
+		return nil
+	}
+
+	dbConfig, err := parseDatabaseConfig(op.DatabaseConfig)
+	if err != nil {
+		return fmt.Errorf("error parsing database config and exit: %s", err.Error())
+	}
+	conf.DatabaseConfig = dbConfig
+	return nil
 }
 
 // parseDatabaseConfig parse database option when DSN is empty
