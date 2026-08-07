@@ -121,7 +121,7 @@ go test -tags=gaussdb ./tests/sqlstore/... -v
 
 ### 4.4 OceanBase IAM Migration 测试
 
-`tests/iammigration` 用于验证 IAM 权限模型 migration 在 MySQL、OceanBase、达梦和高斯数据库上的行为。各数据库入口仅负责连接初始化，migration 断言统一复用同一套测试逻辑。
+`tests/iammigration` 用于验证 IAM 权限模型 migration 在 MySQL、OceanBase、GoldenDB、达梦和高斯数据库上的行为。各数据库入口仅负责连接初始化，migration 断言统一复用同一套测试逻辑。
 
 ```bash
 BCS_TEST_MYSQL_HOST=<ob_host> \
@@ -133,7 +133,7 @@ BCS_TEST_DB_TYPE=ob \
 go test ./tests/iammigration -run TestIAMMigrateMySQLCompatible -count=1 -v
 ```
 
-MySQL 使用默认 `BCS_TEST_DB_TYPE=mysql`；达梦和高斯分别使用：
+MySQL 使用默认 `BCS_TEST_DB_TYPE=mysql`；GoldenDB 可使用 `dg` 或 `goldendb`；达梦和高斯分别使用：
 
 ```bash
 go test -tags=dm ./tests/iammigration -run TestIAMMigrateDM -count=1 -v

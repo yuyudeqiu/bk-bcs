@@ -14,6 +14,7 @@ package sqlstore
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -59,20 +60,8 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 		sqlDB.SetMaxOpenConns(20)
 	} else if conf.DatabaseConfig.DBHost != "" {
 		// 使用 SDK 结构化配置
-		var dbType godbsdk.DatabaseType
-		switch conf.DatabaseConfig.DBType {
-		case "mysql", "ob", "oceanbase":
-			dbType = godbsdk.Mysql
-		case "postgres":
-			dbType = godbsdk.Postgres
-		case "dameng":
-			dbType = godbsdk.Dameng
-		default:
-			dbType = godbsdk.Mysql
-		}
-
 		dbConfig := godbsdk.Database{
-			Typex:    dbType,
+			Typex:    sdkDatabaseType(conf.DatabaseConfig.DBType),
 			Host:     conf.DatabaseConfig.DBHost,
 			Port:     conf.DatabaseConfig.DBPort,
 			User:     conf.DatabaseConfig.DBUser,
@@ -114,4 +103,17 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 
 	GCoreDB = db
 	return nil
+}
+
+func sdkDatabaseType(dbType string) godbsdk.DatabaseType {
+	switch strings.ToLower(dbType) {
+	case "mysql", "ob", "oceanbase", "dg", "goldendb":
+		return godbsdk.Mysql
+	case "postgres":
+		return godbsdk.Postgres
+	case "dameng":
+		return godbsdk.Dameng
+	default:
+		return godbsdk.Mysql
+	}
 }

@@ -15,7 +15,7 @@ func TestIAMMigrateMySQLCompatible(t *testing.T) {
 	if dbType == "" {
 		dbType = "mysql"
 	}
-	if dbType != "mysql" && dbType != "ob" && dbType != "oceanbase" {
+	if dbType != "mysql" && dbType != "ob" && dbType != "oceanbase" && dbType != "dg" && dbType != "goldendb" {
 		t.Fatalf("unsupported MySQL-compatible database type %q", dbType)
 	}
 
