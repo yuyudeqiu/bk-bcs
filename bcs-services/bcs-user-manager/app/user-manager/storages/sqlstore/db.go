@@ -113,6 +113,8 @@ func sdkDatabaseType(dbType string) godbsdk.DatabaseType {
 		return godbsdk.Postgres
 	case "dameng":
 		return godbsdk.Dameng
+	case "gaussdb", "opengauss":
+		return godbsdk.Gaussdb
 	default:
 		return godbsdk.Mysql
 	}

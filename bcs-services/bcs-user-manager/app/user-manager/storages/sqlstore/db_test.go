@@ -20,6 +20,9 @@ func TestSDKDatabaseType(t *testing.T) {
 		{name: "goldendb uppercase", dbType: "GoldenDB", expected: godbsdk.Mysql},
 		{name: "postgres", dbType: "postgres", expected: godbsdk.Postgres},
 		{name: "dameng", dbType: "dameng", expected: godbsdk.Dameng},
+		{name: "gaussdb", dbType: "gaussdb", expected: godbsdk.Gaussdb},
+		{name: "opengauss", dbType: "opengauss", expected: godbsdk.Gaussdb},
+		{name: "opengauss uppercase", dbType: "OpenGauss", expected: godbsdk.Gaussdb},
 		{name: "default", dbType: "unknown", expected: godbsdk.Mysql},
 	}
 

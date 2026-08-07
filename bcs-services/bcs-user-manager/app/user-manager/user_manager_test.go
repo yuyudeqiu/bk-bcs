@@ -14,6 +14,8 @@ func TestRequiresLocklessIAMMigration(t *testing.T) {
 		{dbType: "GoldenDB", expected: true},
 		{dbType: "mysql", expected: false},
 		{dbType: "postgres", expected: false},
+		{dbType: "gaussdb", expected: false},
+		{dbType: "opengauss", expected: false},
 	}
 
 	for _, test := range tests {

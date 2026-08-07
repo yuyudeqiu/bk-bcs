@@ -59,7 +59,7 @@ func NewDBClient(cfg DatabaseConfig) (*gorm.DB, error) {
 	switch cfg.DBType {
 	case "mysql":
 		dbType = godbsdk.Mysql
-	case "gaussdb":
+	case "gaussdb", "opengauss":
 		dbType = godbsdk.Gaussdb
 	case "dameng":
 		dbType = godbsdk.Dameng

@@ -181,7 +181,7 @@ type RedisConfig struct {
 // NOCC:golint/lll(设计如此:)
 // nolint
 type DatabaseConfig struct {
-	DBType                string      `json:"db_type" usage:"database type: mysql, ob, oceanbase, dg, goldendb, postgres" mapstructure:"db_type" yaml:"db_type"`
+	DBType                string      `json:"db_type" usage:"database type: mysql, ob, oceanbase, dg, goldendb, postgres, gaussdb, opengauss" mapstructure:"db_type" yaml:"db_type"`
 	DBHost                string      `json:"db_host" usage:"database host" mapstructure:"db_host" yaml:"db_host"`
 	DBPort                int         `json:"db_port" usage:"database port" mapstructure:"db_port" yaml:"db_port"`
 	DBUser                string      `json:"db_user" usage:"database user" mapstructure:"db_user" yaml:"db_user"`

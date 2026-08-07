@@ -61,7 +61,7 @@ func TestIAMMigration(t *testing.T) {
 		if dbName == "" {
 			dbName = "BKAUTH_TEST"
 		}
-	case "gaussdb", "postgres":
+	case "gaussdb", "opengauss", "postgres":
 		dbName = os.Getenv("BCS_TEST_GAUSSDB_DBNAME")
 		if dbName == "" {
 			dbName = "bcs_test"
@@ -78,7 +78,7 @@ func TestIAMMigration(t *testing.T) {
 		db, err = framework.InitMySQL(dbName)
 	case "dm", "dameng":
 		db, err = framework.InitDM(dbName)
-	case "gaussdb", "postgres":
+	case "gaussdb", "opengauss", "postgres":
 		db, err = framework.InitGaussDB(dbName)
 	default:
 		t.Fatalf("Unsupported test database type: %s", dbType)
@@ -192,7 +192,7 @@ func TestIAMMigration(t *testing.T) {
 		args = []interface{}{dbName}
 	case "dm", "dameng":
 		query = "SELECT COUNT(*) FROM user_tables WHERE table_name = 'BK_IAM_MIGRATIONS'"
-	case "gaussdb", "postgres":
+	case "gaussdb", "opengauss", "postgres":
 		query = "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'bk_iam_migrations'"
 	}
 
