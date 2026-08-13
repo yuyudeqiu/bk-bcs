@@ -101,6 +101,7 @@ type UserMgrConfig struct {
 	EtcdConfig registry.CMDOptions
 
 	Authorization    options.Authorization
+	LocalAuth        options.LocalAuth
 	CommunityEdition bool
 	BcsAPI           *options.BcsAPI
 

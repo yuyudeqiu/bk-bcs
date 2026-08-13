@@ -24,6 +24,7 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/constant"
 	jwt2 "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/jwt"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authentication"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
@@ -52,18 +53,31 @@ func SetupStore(conf *config.UserMgrConfig) error {
 		&models.BcsTempToken{},
 		&models.Activity{},
 		&models.BcsClient{},
+		&models.LocalUser{},
 	).Error; err != nil {
 		return fmt.Errorf("error migrating database schemas: %s", err.Error())
 	}
 	if err := sqlstore.EnsureDefaultRoles(); err != nil {
 		return fmt.Errorf("error creating default authorization roles: %s", err.Error())
 	}
+	_, created, err := authentication.EnsureBootstrapAdmin(
+		context.Background(),
+		sqlstore.NewLocalUserStore(sqlstore.GCoreDB),
+		conf.LocalAuth.BootstrapAdminUsername,
+		conf.LocalAuth.BootstrapAdminPassword,
+	)
+	if err != nil {
+		return fmt.Errorf("error creating bootstrap local admin: %s", err.Error())
+	}
+	if created {
+		blog.Infof("bootstrap local admin(%s) created", conf.LocalAuth.BootstrapAdminUsername)
+	}
 
 	// remove user name Constraints, because we will soft delete token on db when user destroy there token,
 	// so we can't use unique index to check user name
 	sqlstore.GCoreDB.Model(&models.BcsUser{}).RemoveIndex("name")
 
-	err := createBootstrapUsers(conf.BootStrapUsers)
+	err = createBootstrapUsers(conf.BootStrapUsers)
 	if err != nil {
 		return err
 	}

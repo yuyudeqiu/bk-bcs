@@ -47,6 +47,7 @@ type UserManagerOptions struct {
 	TokenNotify TokenNotifyOptions `json:"token_notify"`
 
 	Authorization    Authorization `json:"authorization"`
+	LocalAuth        LocalAuth     `json:"local_auth"`
 	Cmdb             CmdbConfig    `json:"cmdb"`
 	CommunityEdition bool          `json:"community_edition"`
 	TracingConf      TracingConf   `json:"tracing_conf"`
@@ -58,6 +59,12 @@ type UserManagerOptions struct {
 // Authorization configures the user-manager authorization implementation.
 type Authorization struct {
 	Mode string `json:"mode"`
+}
+
+// LocalAuth configures accounts authenticated directly by bcs-user-manager.
+type LocalAuth struct {
+	BootstrapAdminUsername string `json:"bootstrap_admin_username"`
+	BootstrapAdminPassword string `json:"bootstrap_admin_password"`
 }
 
 // TracingConf tracing config
