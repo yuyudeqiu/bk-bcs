@@ -16,7 +16,6 @@ package v1http
 import (
 	restful "github.com/emicklei/go-restful/v3"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/esb/cmdb"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/jwt"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/middleware"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
@@ -46,7 +45,6 @@ func InitV1Routers(ws *restful.WebService, service *permission.PermVerifyClient)
 	initTkeRouters(ws)
 	initPermissionRouters(ws, service)
 	initTokenRouters(ws)
-	initExtraTokenRouters(ws)
 	initIAMProviderRouters(ws)
 	initUserPermsRouters(ws)
 }
@@ -100,13 +98,6 @@ func initTokenRouters(ws *restful.WebService) {
 	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/tokens/temp").To(tokenHandler.CreateTempToken)))
 	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/tokens/client").To(tokenHandler.CreateClientToken)))
 	ws.Route(auth.TokenAuthFunc(ws.GET("/v1/users/info")).To(user.GetCurrentUserInfo))
-}
-
-// initExtraTokenRouters init bcs extra token for third-party system
-func initExtraTokenRouters(ws *restful.WebService) {
-	tokenHandler := token.NewExtraTokenHandler(sqlstore.NewTokenStore(sqlstore.GCoreDB),
-		sqlstore.NewTokenNotifyStore(sqlstore.GCoreDB), cache.RDB, jwt.JWTClient, cmdb.CMDBClient)
-	ws.Route(ws.GET("/v1/tokens/extra/getClusterUserToken").To(tokenHandler.GetTokenByUserAndClusterID))
 }
 
 // initTkeRouters init tke api routers

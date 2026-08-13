@@ -24,7 +24,6 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-common/common/util"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/component"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/esb/cmdb"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/jwt"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/metrics"
 	usermanager "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager"
@@ -62,12 +61,6 @@ func Run(op *options.UserManagerOptions) {
 	err = jwt.InitJWTClient(op)
 	if err != nil {
 		blog.Errorf("init jwt client error: %s", err.Error())
-		os.Exit(1)
-	}
-
-	// init cmdb client
-	if err = cmdb.InitCMDBClient(op); err != nil {
-		blog.Errorf("init cmdb client error: %s", err.Error())
 		os.Exit(1)
 	}
 
