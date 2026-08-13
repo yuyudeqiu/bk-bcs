@@ -19,11 +19,11 @@ import (
 )
 
 const (
-	resourceTypeProject      = "project"
-	resourceTypeCluster      = "cluster"
-	resourceTypeNamespace    = "namespace"
-	resourceTypeTemplateSet  = "templateset"
-	resourceTypeCloudAccount = "cloud_account"
+	resourceTypeProject      = authorization.ResourceTypeProject
+	resourceTypeCluster      = authorization.ResourceTypeCluster
+	resourceTypeNamespace    = authorization.ResourceTypeNamespace
+	resourceTypeTemplateSet  = authorization.ResourceTypeTemplateSet
+	resourceTypeCloudAccount = authorization.ResourceTypeCloudAccount
 )
 
 // PermCtx is the resource context accepted by the compatibility permission API.
@@ -44,8 +44,8 @@ func ResourceFromPermCtx(permCtx *PermCtx) authorization.Resource {
 	resource := authorization.Resource{
 		Type: permCtx.ResourceType,
 		Attributes: map[string]string{
-			"project_id": permCtx.ProjectID,
-			"cluster_id": permCtx.ClusterID,
+			authorization.AttributeProjectID: permCtx.ProjectID,
+			authorization.AttributeClusterID: permCtx.ClusterID,
 		},
 	}
 	switch permCtx.ResourceType {
@@ -64,25 +64,7 @@ func ResourceFromPermCtx(permCtx *PermCtx) authorization.Resource {
 }
 
 // GetResourceTypeFromAction returns the resource protected by a compatibility action.
-func GetResourceTypeFromAction(action string) string { // nolint:cyclop
-	switch action {
-	case "project_create":
-		return ""
-	case "project_view", "project_edit", "project_delete", "cluster_create", "namespace_create",
-		"templateset_create", "cloud_account_create":
-		return resourceTypeProject
-	case "cluster_view", "cluster_manage", "cluster_delete", "cluster_use", "namespace_list",
-		"cluster_scoped_create", "cluster_scoped_view", "cluster_scoped_update", "cluster_scoped_delete":
-		return resourceTypeCluster
-	case "namespace_view", "namespace_update", "namespace_delete", "namespace_scoped_create",
-		"namespace_scoped_view", "namespace_scoped_update", "namespace_scoped_delete":
-		return resourceTypeNamespace
-	case "templateset_view", "templateset_copy", "templateset_update", "templateset_delete",
-		"templateset_instantiate":
-		return resourceTypeTemplateSet
-	case "cloud_account_manage", "cloud_account_use":
-		return resourceTypeCloudAccount
-	default:
-		return ""
-	}
+func GetResourceTypeFromAction(action string) string {
+	resourceType, _ := authorization.ResourceTypeForAction(action)
+	return resourceType
 }

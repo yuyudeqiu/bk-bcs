@@ -14,6 +14,7 @@ package sqlstore
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/metrics"
@@ -35,8 +36,7 @@ func (s *AuthorizationStore) ListBindings(_ context.Context, subject string) ([]
 	err := GCoreDB.Table("bcs_user_resource_roles AS bindings").
 		Select("bindings.resource_type, bindings.resource, roles.actions").
 		Joins("JOIN bcs_roles AS roles ON roles.id = bindings.role_id").
-		Joins("JOIN bcs_users AS users ON users.id = bindings.user_id").
-		Where("users.name = ? AND users.deleted_at IS NULL", subject).
+		Where("bindings.subject = ?", subject).
 		Scan(&bindings).Error
 	return bindings, err
 }
@@ -45,7 +45,14 @@ func (s *AuthorizationStore) ListBindings(_ context.Context, subject string) ([]
 func EnsureDefaultRoles() error {
 	roles := []models.BcsRole{
 		{Name: "manager", Actions: "*"},
-		{Name: "viewer", Actions: "GET,project_view,cluster_view,cluster_use,namespace_view,namespace_list"},
+		{Name: "viewer", Actions: strings.Join([]string{
+			authorization.ActionHTTPGet,
+			authorization.ActionProjectView,
+			authorization.ActionClusterView,
+			authorization.ActionClusterUse,
+			authorization.ActionNamespaceView,
+			authorization.ActionNamespaceList,
+		}, ",")},
 	}
 	for i := range roles {
 		if GetRole(roles[i].Name) != nil {

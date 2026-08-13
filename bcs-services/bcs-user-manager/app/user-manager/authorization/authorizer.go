@@ -20,6 +20,24 @@ const (
 	ModeNone = "none"
 	// ModeLocal evaluates role bindings stored in the user-manager database.
 	ModeLocal = "local"
+
+	// ResourceTypeProject is the root resource in the local BCS hierarchy.
+	ResourceTypeProject = "project"
+	// ResourceTypeCluster is a child of a project.
+	ResourceTypeCluster = "cluster"
+	// ResourceTypeNamespace is a child of a cluster.
+	ResourceTypeNamespace = "namespace"
+	// ResourceTypeNamespaceScoped represents resources contained by a namespace.
+	ResourceTypeNamespaceScoped = "namespace_scoped"
+	// ResourceTypeTemplateSet represents a BCS template set.
+	ResourceTypeTemplateSet = "templateset"
+	// ResourceTypeCloudAccount represents a cloud account.
+	ResourceTypeCloudAccount = "cloud_account"
+
+	// AttributeProjectID identifies the project containing a resource.
+	AttributeProjectID = "project_id"
+	// AttributeClusterID identifies the cluster containing a resource.
+	AttributeClusterID = "cluster_id"
 )
 
 // Resource identifies the object affected by an action.
@@ -31,6 +49,8 @@ type Resource struct {
 
 // Request contains the information required to make an authorization decision.
 type Request struct {
+	// Subject is the effective username or client name. Temporary tokens use the
+	// username they represent instead of the client that created the token.
 	Subject   string
 	Superuser bool
 	Action    string

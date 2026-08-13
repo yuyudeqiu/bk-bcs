@@ -38,7 +38,7 @@ func SetupStore(conf *config.UserMgrConfig) error {
 	}
 
 	// Migrate db schemas
-	sqlstore.GCoreDB.AutoMigrate(
+	if err := sqlstore.GCoreDB.AutoMigrate(
 		&models.BcsUser{},
 		&models.BcsCluster{},
 		&models.BcsRegisterToken{},
@@ -52,7 +52,9 @@ func SetupStore(conf *config.UserMgrConfig) error {
 		&models.BcsTempToken{},
 		&models.Activity{},
 		&models.BcsClient{},
-	)
+	).Error; err != nil {
+		return fmt.Errorf("error migrating database schemas: %s", err.Error())
+	}
 	if err := sqlstore.EnsureDefaultRoles(); err != nil {
 		return fmt.Errorf("error creating default authorization roles: %s", err.Error())
 	}

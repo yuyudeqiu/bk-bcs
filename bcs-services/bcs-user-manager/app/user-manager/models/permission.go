@@ -25,9 +25,9 @@ type BcsRole struct {
 // BcsUserResourceRole table
 type BcsUserResourceRole struct {
 	ID           uint   `gorm:"primary_key"`
-	UserId       uint   `gorm:"not null"`
-	ResourceType string `gorm:"not null"`
-	Resource     string
-	RoleId       uint `gorm:"not null"`
+	Subject      string `gorm:"size:128;not null;unique_index:uk_subject_resource_role"`
+	ResourceType string `gorm:"size:64;not null;unique_index:uk_subject_resource_role"`
+	Resource     string `gorm:"not null;unique_index:uk_subject_resource_role"`
+	RoleId       uint   `gorm:"not null;unique_index:uk_subject_resource_role"`
 	CreatedAt    time.Time
 }

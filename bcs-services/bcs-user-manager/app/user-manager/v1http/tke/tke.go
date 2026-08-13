@@ -15,6 +15,7 @@ package tke
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common"
@@ -26,9 +27,10 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	cluster2 "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/cluster"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/permission"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
 )
+
+var cidrMutex sync.Mutex
 
 // AddTkeCidrForm xxx
 type AddTkeCidrForm struct {
@@ -126,8 +128,8 @@ func ApplyTkeCidr(request *restful.Request, response *restful.Response) {
 		return
 	}
 
-	permission.Mutex.Lock()
-	defer permission.Mutex.Unlock()
+	cidrMutex.Lock()
+	defer cidrMutex.Unlock()
 	// apply a available cidr
 	tkeCidr := sqlstore.QueryTkeCidr(&models.TkeCidr{
 		Vpc:      form.Vpc,
@@ -187,8 +189,8 @@ func ReleaseTkeCidr(request *restful.Request, response *restful.Response) {
 	}
 
 	// check if the cidr is valid
-	permission.Mutex.Lock()
-	defer permission.Mutex.Unlock()
+	cidrMutex.Lock()
+	defer cidrMutex.Unlock()
 	tkeCidr := sqlstore.QueryTkeCidr(&models.TkeCidr{
 		Vpc:     form.Vpc,
 		Cidr:    form.Cidr,

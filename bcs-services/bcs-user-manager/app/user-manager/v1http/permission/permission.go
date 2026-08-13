@@ -126,7 +126,7 @@ func GrantPermission(request *restful.Request, response *restful.Response) {
 
 		// get user resource role
 		userResourceRole := &models.BcsUserResourceRole{
-			UserId:       userInDb.ID,
+			Subject:      v.UserName,
 			ResourceType: v.ResourceType,
 			Resource:     v.Resource,
 			RoleId:       roleInDb.ID,
@@ -192,7 +192,7 @@ func GetPermission(request *restful.Request, response *restful.Response) {
 		"bcs_user_resource_roles.resource_type, bcs_user_resource_roles.resource, bcs_roles.name as role").
 		Joins(
 			"left join bcs_roles on bcs_user_resource_roles.role_id = bcs_roles.id where bcs_user_resource_roles."+
-				"user_id = ? and bcs_user_resource_roles.resource_type = ?", userInDb.ID, form.ResourceType).
+				"subject = ? and bcs_user_resource_roles.resource_type = ?", form.UserName, form.ResourceType).
 		Scan(&permissions)
 
 	data := utils.CreateResponseData(nil, "success", permissions)
@@ -254,7 +254,7 @@ func RevokePermission(request *restful.Request, response *restful.Response) {
 
 		// get bcs user resource role
 		userResourceRole := &models.BcsUserResourceRole{
-			UserId:       userInDb.ID,
+			Subject:      v.UserName,
 			ResourceType: v.ResourceType,
 			Resource:     v.Resource,
 			RoleId:       roleInDb.ID,
@@ -494,10 +494,10 @@ func (cli *PermVerifyClient) VerifyPermissionV2(request *restful.Request, respon
 			Type: string(req.ResourceType),
 			ID:   req.Resource,
 			Attributes: map[string]string{
-				"project_id":   req.ProjectID,
-				"cluster_id":   req.ClusterID,
-				"cluster_type": string(req.ClusterType),
-				"request_url":  req.RequestURL,
+				authorization.AttributeProjectID: req.ProjectID,
+				authorization.AttributeClusterID: req.ClusterID,
+				"cluster_type":                   string(req.ClusterType),
+				"request_url":                    req.RequestURL,
 			},
 		},
 	})
