@@ -53,6 +53,9 @@ func SetupStore(conf *config.UserMgrConfig) error {
 		&models.Activity{},
 		&models.BcsClient{},
 	)
+	if err := sqlstore.EnsureDefaultRoles(); err != nil {
+		return fmt.Errorf("error creating default authorization roles: %s", err.Error())
+	}
 
 	// remove user name Constraints, because we will soft delete token on db when user destroy there token,
 	// so we can't use unique index to check user name

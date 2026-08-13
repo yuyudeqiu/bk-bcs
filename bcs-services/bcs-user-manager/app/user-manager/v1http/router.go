@@ -83,7 +83,7 @@ func initPermissionRouters(ws *restful.WebService, service *permission.PermVerif
 	ws.Route(auth.AdminAuthFunc(ws.GET("/v1/permissions")).To(permission.GetPermission))
 	ws.Route(auth.AdminAuthFunc(ws.DELETE("/v1/permissions")).To(permission.RevokePermission))
 
-	ws.Route(auth.AdminAuthFunc(ws.GET("/v1/permissions/verify")).To(permission.VerifyPermission))
+	ws.Route(auth.AdminAuthFunc(ws.GET("/v1/permissions/verify")).To(service.VerifyPermission))
 	ws.Route(auth.AdminAuthFunc(ws.GET("/v2/permissions/verify")).To(service.VerifyPermissionV2))
 }
 

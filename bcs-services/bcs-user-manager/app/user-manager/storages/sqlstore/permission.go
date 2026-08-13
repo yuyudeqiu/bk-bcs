@@ -13,11 +13,50 @@
 package sqlstore
 
 import (
+	"context"
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/metrics"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 )
+
+// AuthorizationStore reads local authorization bindings.
+type AuthorizationStore struct{}
+
+// NewAuthorizationStore creates a local authorization store.
+func NewAuthorizationStore() *AuthorizationStore {
+	return &AuthorizationStore{}
+}
+
+// ListBindings resolves all role bindings for a username.
+func (s *AuthorizationStore) ListBindings(_ context.Context, subject string) ([]authorization.Binding, error) {
+	bindings := make([]authorization.Binding, 0)
+	err := GCoreDB.Table("bcs_user_resource_roles AS bindings").
+		Select("bindings.resource_type, bindings.resource, roles.actions").
+		Joins("JOIN bcs_roles AS roles ON roles.id = bindings.role_id").
+		Joins("JOIN bcs_users AS users ON users.id = bindings.user_id").
+		Where("users.name = ? AND users.deleted_at IS NULL", subject).
+		Scan(&bindings).Error
+	return bindings, err
+}
+
+// EnsureDefaultRoles creates the built-in local roles when they do not exist.
+func EnsureDefaultRoles() error {
+	roles := []models.BcsRole{
+		{Name: "manager", Actions: "*"},
+		{Name: "viewer", Actions: "GET,project_view,cluster_view,cluster_use,namespace_view,namespace_list"},
+	}
+	for i := range roles {
+		if GetRole(roles[i].Name) != nil {
+			continue
+		}
+		if err := CreateRole(&roles[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // GetRole get bcsRole by roleName
 func GetRole(roleName string) *models.BcsRole {

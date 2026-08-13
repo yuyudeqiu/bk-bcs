@@ -49,9 +49,10 @@ func GetPerms(authorizer coreauth.Authorizer) restful.RouteFunction {
 		result := make(map[string]bool, len(form.ActionIDs))
 		for _, actionID := range form.ActionIDs {
 			decision, authErr := authorizer.Authorize(request.Request.Context(), coreauth.Request{
-				Subject:  user.Name,
-				Action:   actionID,
-				Resource: auth.ResourceFromPermCtx(form.PermCtx),
+				Subject:   user.Name,
+				Superuser: user.IsAdmin(),
+				Action:    actionID,
+				Resource:  auth.ResourceFromPermCtx(form.PermCtx),
 			})
 			if authErr != nil {
 				utils.WriteServerError(response, common.BcsErrApiBadRequest, authErr.Error())
@@ -87,9 +88,10 @@ func GetPermByActionID(authorizer coreauth.Authorizer) restful.RouteFunction {
 		}
 
 		decision, err := authorizer.Authorize(request.Request.Context(), coreauth.Request{
-			Subject:  user.Name,
-			Action:   actionID,
-			Resource: auth.ResourceFromPermCtx(form.PermCtx),
+			Subject:   user.Name,
+			Superuser: user.IsAdmin(),
+			Action:    actionID,
+			Resource:  auth.ResourceFromPermCtx(form.PermCtx),
 		})
 		if err != nil {
 			utils.WriteServerError(response, common.BcsErrApiBadRequest, err.Error())

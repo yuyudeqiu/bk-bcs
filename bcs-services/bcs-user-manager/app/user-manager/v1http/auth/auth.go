@@ -231,9 +231,10 @@ func PermsAuthFunc(authorizer authorization.Authorizer, actionID string, permCtx
 		blog.Log(request.Request.Context()).Infof("check user %s permission", user.Name)
 
 		decision, err := authorizer.Authorize(request.Request.Context(), authorization.Request{
-			Subject:  user.Name,
-			Action:   actionID,
-			Resource: ResourceFromPermCtx(permCtx),
+			Subject:   user.Name,
+			Superuser: user.IsAdmin(),
+			Action:    actionID,
+			Resource:  ResourceFromPermCtx(permCtx),
 		})
 		if err != nil {
 			utils.ResponseSystemError(response, fmt.Errorf("get perm failed, err %s", err.Error()))

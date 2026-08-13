@@ -18,6 +18,8 @@ import "context"
 const (
 	// ModeNone disables authorization checks after the caller has been authenticated.
 	ModeNone = "none"
+	// ModeLocal evaluates role bindings stored in the user-manager database.
+	ModeLocal = "local"
 )
 
 // Resource identifies the object affected by an action.
@@ -29,9 +31,10 @@ type Resource struct {
 
 // Request contains the information required to make an authorization decision.
 type Request struct {
-	Subject  string
-	Action   string
-	Resource Resource
+	Subject   string
+	Superuser bool
+	Action    string
+	Resource  Resource
 }
 
 // Decision is the result returned by an Authorizer.
@@ -43,4 +46,16 @@ type Decision struct {
 // Authorizer is implemented by each authorization mode.
 type Authorizer interface {
 	Authorize(ctx context.Context, request Request) (Decision, error)
+}
+
+// Binding is a resolved role binding used by the local authorizer.
+type Binding struct {
+	ResourceType string
+	Resource     string
+	Actions      string
+}
+
+// BindingReader loads role bindings for a subject.
+type BindingReader interface {
+	ListBindings(ctx context.Context, subject string) ([]Binding, error)
 }

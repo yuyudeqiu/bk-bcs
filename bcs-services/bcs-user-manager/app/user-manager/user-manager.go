@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common"
 	"github.com/Tencent/bk-bcs/bcs-common/common/blog"
@@ -38,6 +37,7 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/job/activity"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/permission"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v3http"
@@ -97,10 +97,6 @@ func (u *UserManager) Start() error {
 		}
 	}()
 
-	// init usermanager role and cache permission
-	go permission.InitCache()
-	time.Sleep(1 * time.Second)
-
 	err := u.initUserManagerServer()
 	if err != nil {
 		blog.Errorf("initUserManagerServer failed: %v", err)
@@ -151,7 +147,7 @@ func (u *UserManager) initPermService() error {
 }
 
 func (u *UserManager) initAuthorizer() error {
-	authorizer, err := authorization.New(u.config.Authorization.Mode)
+	authorizer, err := authorization.New(u.config.Authorization.Mode, sqlstore.NewAuthorizationStore())
 	if err != nil {
 		return err
 	}

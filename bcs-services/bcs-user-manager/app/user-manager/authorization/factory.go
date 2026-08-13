@@ -18,10 +18,15 @@ import (
 )
 
 // New creates an Authorizer for the configured mode.
-func New(mode string) (Authorizer, error) {
+func New(mode string, bindings BindingReader) (Authorizer, error) {
 	switch strings.ToLower(strings.TrimSpace(mode)) {
 	case "", ModeNone:
 		return NoneAuthorizer{}, nil
+	case ModeLocal:
+		if bindings == nil {
+			return nil, fmt.Errorf("authorization mode %q requires a binding reader", mode)
+		}
+		return NewLocalAuthorizer(bindings), nil
 	default:
 		return nil, fmt.Errorf("unsupported authorization mode %q", mode)
 	}

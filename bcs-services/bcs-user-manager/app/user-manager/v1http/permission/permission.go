@@ -16,8 +16,6 @@ package permission
 import (
 	"context"
 	"fmt"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common"
@@ -66,91 +64,6 @@ type VerifyPermissionForm struct {
 type VerifyPermissionResponse struct {
 	Allowed bool   `json:"allowed"`
 	Message string `json:"message"`
-}
-
-// OwnedPermissions action
-type OwnedPermissions struct {
-	Actions string `json:"actions"`
-}
-
-// UserResourceAction resource operation action
-type UserResourceAction struct {
-	UserId       uint
-	ResourceType ResourceType
-	Resource     string
-	Actions      string
-}
-
-// UserPermissions user permission definition
-type UserPermissions struct {
-	ResourceType ResourceType
-	Resource     string
-	Actions      string
-}
-
-// PermissionsCache local cache for speed up
-var PermissionsCache map[uint][]UserPermissions
-
-// Mutex rwLock
-var Mutex *sync.RWMutex
-
-// InitCache sync data from db to cache periodically
-func InitCache() {
-	// init bcs roles
-	initRoles := []models.BcsRole{
-		{
-			Name:    "manager",
-			Actions: "GET,POST,PUT,PATCH,DELETE",
-		},
-		{
-			Name:    "viewer",
-			Actions: "GET",
-		},
-	}
-	// init roles
-	// create roles
-	for _, role := range initRoles {
-		m := sqlstore.GetRole(role.Name)
-		if m == nil {
-			err := sqlstore.CreateRole(&role)
-			if err != nil {
-				blog.Log(context.Background()).Errorf("Failed to init role [%s]: %s", role.Name, err.Error())
-			}
-		}
-	}
-
-	// user resource
-	Mutex = new(sync.RWMutex)
-	var ura []UserResourceAction
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-	for {
-		// get role from db
-		sqlstore.GCoreDB.Table("bcs_user_resource_roles").Select(
-			"bcs_user_resource_roles.user_id, bcs_user_resource_roles.resource_type, bcs_user_resource_roles." +
-				"resource, bcs_roles.actions").
-			Joins("left join bcs_roles on bcs_user_resource_roles.role_id = bcs_roles.id").Scan(&ura)
-
-		// set cache mutex lock
-		Mutex.Lock()
-		// cache permission
-		PermissionsCache = make(map[uint][]UserPermissions)
-		for _, v := range ura {
-			up := UserPermissions{
-				ResourceType: v.ResourceType,
-				Resource:     v.Resource,
-				Actions:      v.Actions,
-			}
-			PermissionsCache[v.UserId] = append(PermissionsCache[v.UserId], up)
-		}
-		Mutex.Unlock()
-
-		// wait to get roles
-		// nolint
-		select {
-		case <-ticker.C:
-		}
-	}
 }
 
 // GrantPermission grant permissions
@@ -375,7 +288,7 @@ func RevokePermission(request *restful.Request, response *restful.Response) {
 }
 
 // VerifyPermission [GET] path /usermanager/v1/permissions/verify
-func VerifyPermission(request *restful.Request, response *restful.Response) {
+func (cli *PermVerifyClient) VerifyPermission(request *restful.Request, response *restful.Response) {
 	start := time.Now()
 	ctx := request.Request.Context()
 
@@ -418,68 +331,28 @@ func VerifyPermission(request *restful.Request, response *restful.Response) {
 		return
 	}
 
-	// check resource type
-	switch form.ResourceType {
-	case Cluster, Storage:
-		// verify old permission
-		allowed, message := verifyResourceReplica(user.ID, form.ResourceType, form.Resource, form.Action)
-
-		data := utils.CreateResponseData(nil, "success", &VerifyPermissionResponse{
-			Allowed: allowed,
-			Message: message,
-		})
-		blog.Log(ctx).Infof("user %s access to type: %s, resource: %s, action: %s, permission: %t",
-			user.Name, form.ResourceType, form.Resource, form.Action, allowed)
-		_, _ = response.Write([]byte(data))
-	default:
-		// verify default permission
-		allowed, message := verifyResourceReplica(user.ID, form.ResourceType, "", form.Action)
-
-		data := utils.CreateResponseData(nil, "success", &VerifyPermissionResponse{
-			Allowed: allowed,
-			Message: message,
-		})
-		blog.Log(ctx).Infof("user %s access to type: %s, action: %s, permission: %t",
-			user.Name, form.ResourceType, form.Action, allowed)
-		_, _ = response.Write([]byte(data))
+	decision, err := cli.Authorizer.Authorize(ctx, authorization.Request{
+		Subject:   user.Name,
+		Superuser: user.IsAdmin(),
+		Action:    form.Action,
+		Resource: authorization.Resource{
+			Type: string(form.ResourceType),
+			ID:   form.Resource,
+		},
+	})
+	if err != nil {
+		blog.Log(ctx).Errorf("authorize user %s failed: %v", user.Name, err)
+		utils.WriteServerError(response, common.BcsErrApiInternalDbError, err.Error())
+		metrics.ReportRequestAPIMetrics("VerifyPermission", request.Request.Method, metrics.ErrStatus, start)
+		return
 	}
 
+	data := utils.CreateResponseData(nil, "success", &VerifyPermissionResponse{
+		Allowed: decision.Allowed,
+		Message: decision.Reason,
+	})
+	_, _ = response.Write([]byte(data))
 	metrics.ReportRequestAPIMetrics("VerifyPermission", request.Request.Method, metrics.SucStatus, start)
-}
-
-// verifyResourceReplica verify whether a user have permission for s resource, return true or false
-func verifyResourceReplica(userID uint, resourceType ResourceType, resource, action string) (bool, string) {
-	var op []OwnedPermissions
-	if resource == "" {
-
-		Mutex.RLock()
-		for _, v := range PermissionsCache[userID] {
-			if v.ResourceType == resourceType {
-				op = append(op, OwnedPermissions{Actions: v.Actions})
-			}
-		}
-		Mutex.RUnlock()
-	} else {
-
-		// cache permission
-		Mutex.RLock()
-		for _, v := range PermissionsCache[userID] {
-			if v.ResourceType == resourceType && (v.Resource == resource || v.Resource == "*") {
-				op = append(op, OwnedPermissions{Actions: v.Actions})
-			}
-		}
-		Mutex.RUnlock()
-	}
-	// get resource
-	for _, p := range op {
-		actions := strings.Split(p.Actions, ",")
-		for _, a := range actions {
-			if action == a {
-				return true, ""
-			}
-		}
-	}
-	return false, "no permission"
 }
 
 // getUserInfoByToken get user info by token
@@ -544,25 +417,6 @@ func getUserFromTempToken(s string) (*models.BcsTempToken, bool) {
 	}
 
 	return tempUser, false
-}
-
-// verifyPermissionV1
-func verifyPermissionV1(ctx context.Context, user *models.BcsUser, req VerifyPermissionReq) (bool, string) {
-	switch req.ResourceType {
-	case Cluster, Storage:
-		/// verifyResourceReplica
-		allowed, message := verifyResourceReplica(user.ID, req.ResourceType, req.Resource, req.Action)
-		blog.Log(ctx).Infof("user %s access to type: %s, resource: %s, action: %s, permission: %t",
-			user.Name, req.ResourceType, req.Resource, req.Action, allowed)
-		return allowed, message
-	default:
-		// verifyResourceReplica
-		allowed, message := verifyResourceReplica(user.ID, req.ResourceType, "", req.Action)
-		blog.Log(ctx).Infof("user %s access to type: %s, action: %s, permission: %t",
-			user.Name, req.ResourceType, req.Action, allowed)
-
-		return allowed, message
-	}
 }
 
 // VerifyPermissionV2 [GET] path /usermanager/v2/permissions/verify
