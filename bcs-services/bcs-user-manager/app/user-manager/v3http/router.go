@@ -23,7 +23,6 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v3http/activity"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v3http/token"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 )
 
 // InitV3Routers init v3 version route,
@@ -47,7 +46,7 @@ func initActivityLogRouters(ws *restful.WebService) {
 }
 
 func initTokenRouters(ws *restful.WebService) {
-	tokenHandler := token.NewTokenHandler(sqlstore.NewTokenStore(sqlstore.GCoreDB, config.GlobalCryptor),
+	tokenHandler := token.NewTokenHandler(sqlstore.NewTokenStore(sqlstore.GCoreDB),
 		cache.RDB, jwt.JWTClient)
 	ws.Route(auth.ManagerAuthFunc(ws.POST("/tokens/{project_code}/clients").To(tokenHandler.CreateProjectClient)))
 	ws.Route(auth.ProjectViewFunc(auth.TokenAuthenticateV2Func(

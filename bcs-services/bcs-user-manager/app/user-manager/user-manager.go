@@ -26,11 +26,9 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-common/common"
 	"github.com/Tencent/bk-bcs/bcs-common/common/blog"
-	"github.com/Tencent/bk-bcs/bcs-common/common/encryptv2" // nolint
 	bcshttp "github.com/Tencent/bk-bcs/bcs-common/common/http"
 	"github.com/Tencent/bk-bcs/bcs-common/common/http/httpserver"
 	"github.com/Tencent/bk-bcs/bcs-common/common/ssl"
-	"github.com/Tencent/bk-bcs/bcs-common/common/static"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/i18n"
 	restful "github.com/emicklei/go-restful/v3"
@@ -219,39 +217,6 @@ func (u *UserManager) initEtcdRegistry() error {
 	return nil
 }
 
-func (u *UserManager) initCryptor() error {
-	if !u.config.Encrypt.Enable {
-		return nil
-	}
-	conf := &encryptv2.Config{
-		Enabled:   u.config.Encrypt.Enable,
-		Algorithm: encryptv2.Algorithm(u.config.Encrypt.Algorithm),
-	}
-	switch conf.Algorithm {
-	case encryptv2.Sm4:
-		conf.Sm4 = &encryptv2.Sm4Conf{
-			Key: u.config.Encrypt.Secret.Key,
-			Iv:  u.config.Encrypt.Secret.Secret,
-		}
-	case encryptv2.AesGcm:
-		conf.AesGcm = &encryptv2.AesGcmConf{
-			Key:   u.config.Encrypt.Secret.Key,
-			Nonce: u.config.Encrypt.Secret.Secret,
-		}
-	case encryptv2.Normal:
-		conf.Normal = &encryptv2.NormalConf{
-			PriKey: static.EncryptionKey,
-		}
-	}
-	cryptor, err := encryptv2.NewCrypto(conf)
-	if err != nil {
-		return fmt.Errorf("init cryptor failed, %s", err.Error())
-	}
-	config.GlobalCryptor = cryptor
-	blog.Info("init cryptor successfully")
-	return nil
-}
-
 // Migrate migrates something.
 //
 // op is a pointer to options.Migration.
@@ -295,11 +260,6 @@ func (u *UserManager) initI18n() {
 
 func (u *UserManager) initUserManagerServer() error {
 	var err error
-	err = u.initCryptor()
-	if err != nil {
-		return err
-	}
-
 	err = u.initEtcdRegistry()
 	if err != nil {
 		return err

@@ -52,7 +52,6 @@ type UserManagerOptions struct {
 	CommunityEdition bool          `json:"community_edition"`
 	TracingConf      TracingConf   `json:"tracing_conf"`
 	BcsAPI           BcsAPI        `json:"bcs_api"`
-	Encrypt          Encrypt       `json:"encrypt" yaml:"encrypt"`
 	Activity         Activity      `json:"activity" yaml:"activity"`
 	SharedCluster    SharedCluster `json:"shared_cluster" yaml:"shared_cluster"`
 }
@@ -138,19 +137,6 @@ type BcsAPI struct {
 	Host      string `json:"host" usage:"enable http host"`
 	InnerHost string `json:"inner_host" usage:"enable http host"`
 	Token     string `json:"token" usage:"token for calling service"`
-}
-
-// Encrypt define encrypt config
-type Encrypt struct {
-	Enable    bool          `json:"enable" yaml:"enable"`
-	Algorithm string        `json:"algorithm" yaml:"algorithm"`
-	Secret    EncryptSecret `json:"secret" yaml:"secret"`
-}
-
-// EncryptSecret define encrypt secret
-type EncryptSecret struct {
-	Key    string `json:"key" yaml:"key"`
-	Secret string `json:"secret" yaml:"secret"`
 }
 
 // Activity 操作记录清理

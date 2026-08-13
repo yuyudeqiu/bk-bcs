@@ -29,7 +29,6 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 )
 
 // PermissionForm registe form
@@ -533,7 +532,7 @@ func getUserFromTempToken(s string) (*models.BcsTempToken, bool) {
 	token := &models.BcsTempToken{
 		Token: s,
 	}
-	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB, config.GlobalCryptor)
+	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB)
 	tempUser := tokenStore.GetTempTokenByCondition(token)
 	if tempUser == nil {
 		return nil, false

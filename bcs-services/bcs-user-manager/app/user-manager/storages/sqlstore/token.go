@@ -16,10 +16,8 @@ import (
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common/blog"
-	"github.com/Tencent/bk-bcs/bcs-common/common/encryptv2" // nolint
 	"github.com/jinzhu/gorm"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/constant"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/metrics"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 )
@@ -44,13 +42,12 @@ type TokenStore interface {
 }
 
 // NewTokenStore create new token store with db
-func NewTokenStore(db *gorm.DB, cryptor encryptv2.Cryptor) TokenStore {
-	return &realTokenStore{db: db, cryptor: cryptor}
+func NewTokenStore(db *gorm.DB) TokenStore {
+	return &realTokenStore{db: db}
 }
 
 type realTokenStore struct {
-	db      *gorm.DB
-	cryptor encryptv2.Cryptor
+	db *gorm.DB
 }
 
 // GetTokenByCondition Query token by condition
@@ -228,21 +225,11 @@ func (u *realTokenStore) GetAllTokens() []models.BcsUser {
 }
 
 func (u *realTokenStore) encryptToken(token string) (string, error) {
-	if u.cryptor == nil {
-		return token, nil
-	}
-	return u.cryptor.Encrypt(token)
+	return token, nil
 }
 
 func (u *realTokenStore) decryptToken(token string) (string, error) {
-	// if token is not encrypted, return directly
-	if len(token) == constant.DefaultTokenLength {
-		return token, nil
-	}
-	if u.cryptor == nil {
-		return token, nil
-	}
-	return u.cryptor.Decrypt(token)
+	return token, nil
 }
 
 func (u *realTokenStore) GetAllClients() []models.BcsClientUser {

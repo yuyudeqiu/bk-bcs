@@ -56,7 +56,7 @@ func TestToken(t *testing.T) {
 }
 
 func (s *Suite) TestGetTokenByCondition() {
-	tokenStore := NewTokenStore(s.DB, nil)
+	tokenStore := NewTokenStore(s.DB)
 	token := &models.BcsUser{
 		Name: "test",
 	}

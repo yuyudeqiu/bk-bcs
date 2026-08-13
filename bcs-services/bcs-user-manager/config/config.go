@@ -16,7 +16,6 @@ package config
 import (
 	"crypto/tls"
 
-	"github.com/Tencent/bk-bcs/bcs-common/common/encryptv2" // nolint
 	"github.com/Tencent/bk-bcs/bcs-common/common/static"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	registry "github.com/Tencent/bk-bcs/bcs-common/pkg/registry"
@@ -28,9 +27,6 @@ var userManagerConfig *UserMgrConfig
 
 // GloablIAMClient global iam client
 var GloablIAMClient iam.PermClient
-
-// GlobalCryptor global cryptor
-var GlobalCryptor encryptv2.Cryptor
 
 // SetGlobalConfig global config
 func SetGlobalConfig(config *UserMgrConfig) {
@@ -113,9 +109,6 @@ type UserMgrConfig struct {
 	PermissionSwitch bool
 	CommunityEdition bool
 	BcsAPI           *options.BcsAPI
-
-	// Encrypt
-	Encrypt options.Encrypt
 
 	// 操作记录清理
 	Activity options.Activity

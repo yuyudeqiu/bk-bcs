@@ -32,7 +32,6 @@ import (
 	etcdlock "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/lock/etcd"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/options"
 )
 
@@ -148,7 +147,7 @@ func (t *tokenNotify) do() {
 	blog.Infof("checking expired token")
 	// get all tokens
 	tokenNotifyStore := sqlstore.NewTokenNotifyStore(sqlstore.GCoreDB)
-	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB, config.GlobalCryptor)
+	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB)
 	tokens := tokenStore.GetAllTokens()
 	// notify
 	for _, token := range tokens {

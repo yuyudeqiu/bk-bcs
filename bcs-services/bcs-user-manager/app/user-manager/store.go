@@ -71,7 +71,7 @@ func SetupStore(conf *config.UserMgrConfig) error {
 // createBootstrapUsers create the bootstrap users, the bootstrap users can be defined in config files
 // NOCC:golint/fnsize(设计如此)
 func createBootstrapUsers(users []options.BootStrapUser) error {
-	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB, config.GlobalCryptor)
+	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB)
 	for _, u := range users {
 		var userType uint
 		var subType jwt.UserType
@@ -157,7 +157,7 @@ func createBootstrapUsers(users []options.BootStrapUser) error {
 
 // syncTokenToRedis will fetch user token from bcs_tokens, and store it to redis
 func syncTokenToRedis() {
-	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB, config.GlobalCryptor)
+	tokenStore := sqlstore.NewTokenStore(sqlstore.GCoreDB)
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 

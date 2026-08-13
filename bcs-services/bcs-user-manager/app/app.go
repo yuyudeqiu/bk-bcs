@@ -104,7 +104,6 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	userMgrConfig.PermissionSwitch = op.PermissionSwitch
 	userMgrConfig.CommunityEdition = op.CommunityEdition
 	userMgrConfig.BcsAPI = &op.BcsAPI
-	userMgrConfig.Encrypt = op.Encrypt
 	userMgrConfig.Activity = op.Activity
 	userMgrConfig.SharedCluster = op.SharedCluster
 	userMgrConfig.EnableTokenSync = op.EnableTokenSync
