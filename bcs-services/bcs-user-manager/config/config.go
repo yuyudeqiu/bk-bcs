@@ -98,10 +98,8 @@ type UserMgrConfig struct {
 	TKE             options.TKEOptions
 	PeerToken       string
 
-	IAMConfig  options.IAMConfig
 	EtcdConfig registry.CMDOptions
 
-	PermissionSwitch bool
 	Authorization    options.Authorization
 	CommunityEdition bool
 	BcsAPI           *options.BcsAPI

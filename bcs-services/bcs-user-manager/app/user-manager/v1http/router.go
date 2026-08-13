@@ -22,9 +22,9 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/auth"
+	authzhandler "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/cluster"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/credential"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/iam"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/permission"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/tke"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/token"
@@ -113,7 +113,7 @@ func initTkeRouters(ws *restful.WebService) {
 
 // initUserPermsRouters init user perms api routers
 func initUserPermsRouters(ws *restful.WebService, authorizer authorization.Authorizer) {
-	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms")).To(iam.GetPerms(authorizer)))
+	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms")).To(authzhandler.GetPerms(authorizer)))
 	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms/actions/{action_id}")).
-		To(iam.GetPermByActionID(authorizer)))
+		To(authzhandler.GetPermByActionID(authorizer)))
 }

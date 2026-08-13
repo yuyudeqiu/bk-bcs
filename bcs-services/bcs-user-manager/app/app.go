@@ -94,7 +94,6 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	userMgrConfig.BootStrapUsers = op.BootStrapUsers
 	userMgrConfig.TKE = op.TKE
 	userMgrConfig.PeerToken = op.PeerToken
-	userMgrConfig.PermissionSwitch = op.PermissionSwitch
 	userMgrConfig.Authorization = op.Authorization
 	userMgrConfig.CommunityEdition = op.CommunityEdition
 	userMgrConfig.BcsAPI = &op.BcsAPI
@@ -165,8 +164,6 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	}
 
 	userMgrConfig.EtcdConfig = op.Etcd
-	userMgrConfig.IAMConfig = op.IAMConfig
-
 	return userMgrConfig, nil
 }
 

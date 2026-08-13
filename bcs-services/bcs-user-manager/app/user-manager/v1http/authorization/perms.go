@@ -10,14 +10,14 @@
  * limitations under the License.
  */
 
-package iam
+package authorization
 
 import (
 	"github.com/Tencent/bk-bcs/bcs-common/common"
 	restful "github.com/emicklei/go-restful/v3"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/constant"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
+	coreauth "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
@@ -30,7 +30,7 @@ type PermRequest struct {
 }
 
 // GetPerms get perm
-func GetPerms(authorizer authorization.Authorizer) restful.RouteFunction {
+func GetPerms(authorizer coreauth.Authorizer) restful.RouteFunction {
 	return func(request *restful.Request, response *restful.Response) {
 		form := PermRequest{}
 		_ = request.ReadEntity(&form)
@@ -48,7 +48,7 @@ func GetPerms(authorizer authorization.Authorizer) restful.RouteFunction {
 
 		result := make(map[string]bool, len(form.ActionIDs))
 		for _, actionID := range form.ActionIDs {
-			decision, authErr := authorizer.Authorize(request.Request.Context(), authorization.Request{
+			decision, authErr := authorizer.Authorize(request.Request.Context(), coreauth.Request{
 				Subject:  user.Name,
 				Action:   actionID,
 				Resource: auth.ResourceFromPermCtx(form.PermCtx),
@@ -66,7 +66,7 @@ func GetPerms(authorizer authorization.Authorizer) restful.RouteFunction {
 }
 
 // GetPermByActionID get perm by action id
-func GetPermByActionID(authorizer authorization.Authorizer) restful.RouteFunction {
+func GetPermByActionID(authorizer coreauth.Authorizer) restful.RouteFunction {
 	return func(request *restful.Request, response *restful.Response) {
 		actionID := request.PathParameter("action_id")
 		form := PermRequest{}
@@ -86,7 +86,7 @@ func GetPermByActionID(authorizer authorization.Authorizer) restful.RouteFunctio
 			return
 		}
 
-		decision, err := authorizer.Authorize(request.Request.Context(), authorization.Request{
+		decision, err := authorizer.Authorize(request.Request.Context(), coreauth.Request{
 			Subject:  user.Name,
 			Action:   actionID,
 			Resource: auth.ResourceFromPermCtx(form.PermCtx),

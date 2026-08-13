@@ -46,8 +46,6 @@ type UserManagerOptions struct {
 	// token notify feature
 	TokenNotify TokenNotifyOptions `json:"token_notify"`
 
-	IAMConfig        IAMConfig     `json:"iam_config"`
-	PermissionSwitch bool          `json:"permission_switch"`
 	Authorization    Authorization `json:"authorization"`
 	Cmdb             CmdbConfig    `json:"cmdb"`
 	CommunityEdition bool          `json:"community_edition"`
@@ -68,21 +66,6 @@ type TracingConf struct {
 	Endpoint      string            `json:"endpoint" usage:"Collector service endpoint"`
 	Token         string            `json:"token" usage:"token for collector service"`
 	ResourceAttrs map[string]string `json:"resource_attrs" usage:"attributes of traced service"`
-}
-
-// IAMConfig iam config
-type IAMConfig struct {
-	SystemID  string `json:"system_id"`
-	AppCode   string `json:"app_code"`
-	AppSecret string `json:"app_secret"`
-
-	External    bool   `json:"external"`
-	GateWayHost string `json:"gateWay_host"`
-	IAMHost     string `json:"iam_host"`
-	BkiIAMHost  string `json:"bki_iam_host"`
-
-	Metric      bool `json:"metric"`
-	ServerDebug bool `json:"server_debug"`
 }
 
 // TKEOptions tke api option
