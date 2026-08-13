@@ -13,17 +13,14 @@
 package iam
 
 import (
-	"fmt"
-
 	"github.com/Tencent/bk-bcs/bcs-common/common"
-	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	restful "github.com/emicklei/go-restful/v3"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/constant"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/auth"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 )
 
 // PermRequest perm request
@@ -33,103 +30,79 @@ type PermRequest struct {
 }
 
 // GetPerms get perm
-func GetPerms(request *restful.Request, response *restful.Response) {
-	form := PermRequest{}
-	_ = request.ReadEntity(&form)
-	err := utils.Validate.Struct(&form)
-	if err != nil {
-		_ = response.WriteHeaderAndEntity(400, utils.FormatValidationError(err))
-		return
-	}
+func GetPerms(authorizer authorization.Authorizer) restful.RouteFunction {
+	return func(request *restful.Request, response *restful.Response) {
+		form := PermRequest{}
+		_ = request.ReadEntity(&form)
+		err := utils.Validate.Struct(&form)
+		if err != nil {
+			_ = response.WriteHeaderAndEntity(400, utils.FormatValidationError(err))
+			return
+		}
 
-	// get current user
-	currentUser := request.Attribute(constant.CurrentUserAttr)
-	var user *models.BcsUser
-	if v, ok := currentUser.(*models.BcsUser); ok {
-		user = v
-	}
-	if user == nil {
-		utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, "user is not valid")
-		return
-	}
+		user := getCurrentUser(request)
+		if user == nil {
+			utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, "user is not valid")
+			return
+		}
 
-	// get perm
-	permReq := iam.PermissionRequest{
-		SystemID: config.GetGlobalConfig().IAMConfig.SystemID,
-		UserName: user.Name,
-	}
-	var result map[string]bool
-	if form.PermCtx == nil || form.PermCtx.ResourceType == "" {
-		result, err = config.GloablIAMClient.MultiActionsAllowedWithoutResource(form.ActionIDs, permReq)
-	} else {
-		nodes := make([]iam.ResourceNode, 0)
-		nodes = append(nodes, auth.GetResourceNodeFromPermCtx(form.PermCtx))
-		result, err = config.GloablIAMClient.ResourceMultiActionsAllowed(form.ActionIDs, permReq, nodes)
-	}
-	if err != nil {
-		msg := fmt.Sprintf("get perm failed, err %s", err.Error())
-		utils.WriteServerError(response, common.BcsErrApiBadRequest, msg)
-		return
-	}
+		result := make(map[string]bool, len(form.ActionIDs))
+		for _, actionID := range form.ActionIDs {
+			decision, authErr := authorizer.Authorize(request.Request.Context(), authorization.Request{
+				Subject:  user.Name,
+				Action:   actionID,
+				Resource: auth.ResourceFromPermCtx(form.PermCtx),
+			})
+			if authErr != nil {
+				utils.WriteServerError(response, common.BcsErrApiBadRequest, authErr.Error())
+				return
+			}
+			result[actionID] = decision.Allowed
+		}
 
-	data := utils.CreateResponseData(nil, "success", map[string]interface{}{"perms": result})
-	_, _ = response.Write([]byte(data))
+		data := utils.CreateResponseData(nil, "success", map[string]interface{}{"perms": result})
+		_, _ = response.Write([]byte(data))
+	}
 }
 
 // GetPermByActionID get perm by action id
-func GetPermByActionID(request *restful.Request, response *restful.Response) {
-	actionID := request.PathParameter("action_id")
-	form := PermRequest{}
-	_ = request.ReadEntity(&form)
-	err := utils.Validate.Struct(&form)
-	if err != nil {
-		_ = response.WriteHeaderAndEntity(400, utils.FormatValidationError(err))
-		return
-	}
-	if form.PermCtx != nil && form.PermCtx.ResourceType == "" {
-		form.PermCtx.ResourceType = auth.GetResourceTypeFromAction(actionID)
-	}
+func GetPermByActionID(authorizer authorization.Authorizer) restful.RouteFunction {
+	return func(request *restful.Request, response *restful.Response) {
+		actionID := request.PathParameter("action_id")
+		form := PermRequest{}
+		_ = request.ReadEntity(&form)
+		err := utils.Validate.Struct(&form)
+		if err != nil {
+			_ = response.WriteHeaderAndEntity(400, utils.FormatValidationError(err))
+			return
+		}
+		if form.PermCtx != nil && form.PermCtx.ResourceType == "" {
+			form.PermCtx.ResourceType = auth.GetResourceTypeFromAction(actionID)
+		}
 
-	// get current user
-	currentUser := request.Attribute(constant.CurrentUserAttr)
-	var user *models.BcsUser
-	if v, ok := currentUser.(*models.BcsUser); ok {
-		user = v
-	}
-	if user == nil {
-		utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, "user is not valid")
-		return
-	}
+		user := getCurrentUser(request)
+		if user == nil {
+			utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, "user is not valid")
+			return
+		}
 
-	// get perm
-	permReq := iam.PermissionRequest{
-		SystemID: config.GetGlobalConfig().IAMConfig.SystemID,
-		UserName: user.Name,
-	}
-	var allow bool
-	var applyURL string
-	if form.PermCtx == nil || form.PermCtx.ResourceType == "" {
-		allow, err = config.GloablIAMClient.IsAllowedWithoutResource(actionID, permReq, true)
-	} else {
-		node := auth.GetResourceNodeFromPermCtx(form.PermCtx)
-		allow, err = config.GloablIAMClient.IsAllowedWithResource(actionID, permReq, []iam.ResourceNode{node}, true)
-	}
-	if err != nil {
-		msg := fmt.Sprintf("get perm failed, err %s", err.Error())
-		utils.WriteServerError(response, common.BcsErrApiBadRequest, msg)
-		return
-	}
+		decision, err := authorizer.Authorize(request.Request.Context(), authorization.Request{
+			Subject:  user.Name,
+			Action:   actionID,
+			Resource: auth.ResourceFromPermCtx(form.PermCtx),
+		})
+		if err != nil {
+			utils.WriteServerError(response, common.BcsErrApiBadRequest, err.Error())
+			return
+		}
 
-	if !allow {
-		applyURL, err = auth.GetApplyURL(auth.GetApplicationsFromPermCtx(form.PermCtx, actionID))
+		data := utils.CreateResponseData(nil, "success", map[string]interface{}{
+			"perms": map[string]interface{}{actionID: decision.Allowed, "apply_url": ""}})
+		_, _ = response.Write([]byte(data))
 	}
-	if err != nil {
-		msg := fmt.Sprintf("get apply url failed, err %s", err.Error())
-		utils.WriteServerError(response, common.BcsErrApiBadRequest, msg)
-		return
-	}
+}
 
-	data := utils.CreateResponseData(nil, "success", map[string]interface{}{
-		"perms": map[string]interface{}{actionID: allow, "apply_url": applyURL}})
-	_, _ = response.Write([]byte(data))
+func getCurrentUser(request *restful.Request) *models.BcsUser {
+	user, _ := request.Attribute(constant.CurrentUserAttr).(*models.BcsUser)
+	return user
 }

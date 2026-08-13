@@ -17,11 +17,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common"
-	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/jwt"
 	restful "github.com/emicklei/go-restful/v3"
 
@@ -29,10 +27,10 @@ import (
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/errors"
 	jwt2 "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/jwt"
 	blog "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/log"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 )
 
 // TokenAuthenticater wrapper for http request
@@ -182,14 +180,14 @@ func TokenAuthFunc(rb *restful.RouteBuilder) *restful.RouteBuilder {
 }
 
 // ProjectViewFunc project view filter
-func ProjectViewFunc(rb *restful.RouteBuilder) *restful.RouteBuilder {
-	rb.Filter(ProjectViewAuthorization)
+func ProjectViewFunc(authorizer authorization.Authorizer, rb *restful.RouteBuilder) *restful.RouteBuilder {
+	rb.Filter(ProjectViewAuthorization(authorizer))
 	return rb
 }
 
 // ProjectEditFunc project edit filter
-func ProjectEditFunc(rb *restful.RouteBuilder) *restful.RouteBuilder {
-	rb.Filter(ProjectEditAuthorization)
+func ProjectEditFunc(authorizer authorization.Authorizer, rb *restful.RouteBuilder) *restful.RouteBuilder {
+	rb.Filter(ProjectEditAuthorization(authorizer))
 	return rb
 }
 
@@ -221,7 +219,8 @@ func TokenAuthenticateV2(request *restful.Request, response *restful.Response, c
 }
 
 // PermsAuthFunc perms auth filter
-func PermsAuthFunc(actionID string, permCtx *PermCtx) func(request *restful.Request, response *restful.Response,
+func PermsAuthFunc(authorizer authorization.Authorizer, actionID string, permCtx *PermCtx) func(
+	request *restful.Request, response *restful.Response,
 	chain *restful.FilterChain) {
 	return func(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
 		user := utils.GetUserFromAttribute(request)
@@ -231,28 +230,18 @@ func PermsAuthFunc(actionID string, permCtx *PermCtx) func(request *restful.Requ
 		}
 		blog.Log(request.Request.Context()).Infof("check user %s permission", user.Name)
 
-		// get perm
-		permReq := iam.PermissionRequest{
-			SystemID: config.GetGlobalConfig().IAMConfig.SystemID,
-			UserName: user.Name,
-		}
-		var allow bool
-		var applyURL string
-		node := GetResourceNodeFromPermCtx(permCtx)
-		allow, err := config.GloablIAMClient.IsAllowedWithResource(actionID, permReq, []iam.ResourceNode{node}, true)
+		decision, err := authorizer.Authorize(request.Request.Context(), authorization.Request{
+			Subject:  user.Name,
+			Action:   actionID,
+			Resource: ResourceFromPermCtx(permCtx),
+		})
 		if err != nil {
 			utils.ResponseSystemError(response, fmt.Errorf("get perm failed, err %s", err.Error()))
 			return
 		}
 
-		if !allow {
-			applyURL, err = GetApplyURL(GetApplicationsFromPermCtx(permCtx, actionID))
-			if err != nil {
-				utils.ResponseSystemError(response, fmt.Errorf("get apply url failed, err %s", err.Error()))
-				return
-			}
+		if !decision.Allowed {
 			utils.ResponsePermissionError(response, &utils.PermDeniedError{Perms: utils.PermData{
-				ApplyURL:   applyURL,
 				ActionList: []utils.ResourceAction{{Type: permCtx.ResourceType, Action: actionID}},
 			}})
 			return
@@ -262,25 +251,29 @@ func PermsAuthFunc(actionID string, permCtx *PermCtx) func(request *restful.Requ
 }
 
 // ProjectViewAuthorization project view authorization
-func ProjectViewAuthorization(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
-	project := utils.GetProjectFromAttribute(request)
-	if project == nil {
-		utils.ResponseParamsError(response, errors.ErrProjectNotFound)
-		return
+func ProjectViewAuthorization(authorizer authorization.Authorizer) restful.FilterFunction {
+	return func(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
+		project := utils.GetProjectFromAttribute(request)
+		if project == nil {
+			utils.ResponseParamsError(response, errors.ErrProjectNotFound)
+			return
+		}
+		permCtx := &PermCtx{ResourceType: "project", ProjectID: project.ProjectID}
+		PermsAuthFunc(authorizer, "project_view", permCtx)(request, response, chain)
 	}
-	permCtx := &PermCtx{ResourceType: "project", ProjectID: project.ProjectID}
-	PermsAuthFunc("project_view", permCtx)(request, response, chain)
 }
 
 // ProjectEditAuthorization project edit authorization
-func ProjectEditAuthorization(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
-	project := utils.GetProjectFromAttribute(request)
-	if project == nil {
-		utils.ResponseParamsError(response, errors.ErrProjectNotFound)
-		return
+func ProjectEditAuthorization(authorizer authorization.Authorizer) restful.FilterFunction {
+	return func(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
+		project := utils.GetProjectFromAttribute(request)
+		if project == nil {
+			utils.ResponseParamsError(response, errors.ErrProjectNotFound)
+			return
+		}
+		permCtx := &PermCtx{ResourceType: "project", ProjectID: project.ProjectID}
+		PermsAuthFunc(authorizer, "project_edit", permCtx)(request, response, chain)
 	}
-	permCtx := &PermCtx{ResourceType: "project", ProjectID: project.ProjectID}
-	PermsAuthFunc("project_edit", permCtx)(request, response, chain)
 }
 
 // ManagerAuth manager token verification
@@ -365,50 +358,4 @@ func GetUser(req *restful.Request) *models.BcsUser {
 	}
 
 	return nil
-}
-
-var (
-	// iam system token
-	iamToken    = ""
-	iamInstance = sync.Once{}
-)
-
-func getIAMToken() (string, error) {
-	var err error
-	iamInstance.Do(func() {
-		iamToken, err = config.GloablIAMClient.GetToken()
-	})
-	return iamToken, err
-}
-
-// BKIAMAuthFunc bkiam auth filter
-func BKIAMAuthFunc(rb *restful.RouteBuilder) *restful.RouteBuilder {
-	rb.Filter(BKIAMAuthenticate)
-	return rb
-}
-
-// BKIAMAuthenticate bkiam authenication
-func BKIAMAuthenticate(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
-	_, password, ok := request.Request.BasicAuth()
-	if !ok {
-		message := fmt.Sprintf("errcode: %d, no basic auth info", common.BcsErrApiUnauthorized)
-		utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, message)
-		return
-	}
-
-	// validate system token
-	token, err := getIAMToken()
-	if err != nil {
-		message := fmt.Sprintf("errcode: %d, get token from bkiam failed: %s", common.BcsErrApiUnauthorized,
-			err.Error())
-		utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, message)
-		return
-	}
-	if token != password {
-		message := fmt.Sprintf("errcode: %d, invalid token", common.BcsErrApiUnauthorized)
-		utils.WriteUnauthorizedError(response, common.BcsErrApiUnauthorized, message)
-		return
-	}
-
-	chain.ProcessFilter(request, response)
 }

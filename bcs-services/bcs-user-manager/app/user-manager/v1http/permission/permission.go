@@ -26,6 +26,7 @@ import (
 
 	blog "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/log"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/metrics"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
@@ -592,14 +593,8 @@ func (cli *PermVerifyClient) VerifyPermissionV2(request *restful.Request, respon
 		return
 	}
 
-	// permission switch for special case
-	if cli.PermSwitch {
-		switchPermission(ctx, request, response, start)
-		return
-	}
-
 	// userInfo by token
-	user, temp, hasExpired := getUserInfoByToken(ctx, req.UserToken)
+	user, _, hasExpired := getUserInfoByToken(ctx, req.UserToken)
 	if user == nil {
 		blog.Log(ctx).Warnf("AuthToken [%s] is invalid from %s, type: %s, resource: %s",
 			req.UserToken, request.Request.RemoteAddr, req.ResourceType, req.Resource)
@@ -638,32 +633,31 @@ func (cli *PermVerifyClient) VerifyPermissionV2(request *restful.Request, respon
 		return
 	}
 
-	// v2 permission will be compatible with v1 permission
-	if !temp {
-		allowed, message := verifyPermissionV1(ctx, user, req)
-		if allowed {
-			data := utils.CreateResponseData(nil, "success", &VerifyPermissionResponse{
-				Allowed: allowed,
-				Message: message,
-			})
-			_, _ = response.Write([]byte(data))
-			metrics.ReportRequestAPIMetrics("VerifyPermissionV2", request.Request.Method, metrics.SucStatus, start)
-			return
-		}
+	decision, err := cli.Authorizer.Authorize(ctx, authorization.Request{
+		Subject: user.Name,
+		Action:  req.Action,
+		Resource: authorization.Resource{
+			Type: string(req.ResourceType),
+			ID:   req.Resource,
+			Attributes: map[string]string{
+				"project_id":   req.ProjectID,
+				"cluster_id":   req.ClusterID,
+				"cluster_type": string(req.ClusterType),
+				"request_url":  req.RequestURL,
+			},
+		},
+	})
+	if err != nil {
+		blog.Log(ctx).Errorf("authorize user %s failed: %v", user.Name, err)
+		utils.WriteServerError(response, common.BcsErrApiInternalDbError, err.Error())
+		metrics.ReportRequestAPIMetrics("VerifyPermissionV2", request.Request.Method, metrics.ErrStatus, start)
+		return
 	}
 
-	// VerifyPermissionV2
-	cli.verifyV2Permission(ctx, req, user, response)
-	metrics.ReportRequestAPIMetrics("VerifyPermissionV2", request.Request.Method, metrics.SucStatus, start)
-}
-
-// switch permission
-func switchPermission(ctx context.Context, request *restful.Request, response *restful.Response, start time.Time) {
-	blog.Log(ctx).Infof("VerifyPermissionV2 permission from %s, switch is true", request.Request.RemoteAddr)
 	metrics.ReportRequestAPIMetrics("VerifyPermissionV2", request.Request.Method, metrics.SucStatus, start)
 	data := utils.CreateResponseData(nil, "success", &VerifyPermissionResponse{
-		Allowed: true,
-		Message: "",
+		Allowed: decision.Allowed,
+		Message: decision.Reason,
 	})
 	_, _ = response.Write([]byte(data))
 }

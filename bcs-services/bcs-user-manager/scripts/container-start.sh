@@ -16,6 +16,7 @@ bcsTokenNotifyContent="${bcsTokenNotifyContent:-你好，{{ .Username \}\}:<br>�
 bcsTokenNotifyESBEmailPath="${bcsTokenNotifyESBEmailPath:-/api/c/compapi/v2/cmsi/send_mail/}" \
 bcsTokenNotifyESBRtxPath="${bcsTokenNotifyESBRtxPath:-/api/c/compapi/v2/cmsi/send_rtx/}" \
 enableTokenSync="${enableTokenSync:-false}" \
+authorizationMode="${authorizationMode:-none}" \
 envsubst | tee ${module}.json
 fi
 

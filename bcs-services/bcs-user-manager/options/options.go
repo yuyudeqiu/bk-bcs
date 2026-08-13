@@ -48,12 +48,18 @@ type UserManagerOptions struct {
 
 	IAMConfig        IAMConfig     `json:"iam_config"`
 	PermissionSwitch bool          `json:"permission_switch"`
+	Authorization    Authorization `json:"authorization"`
 	Cmdb             CmdbConfig    `json:"cmdb"`
 	CommunityEdition bool          `json:"community_edition"`
 	TracingConf      TracingConf   `json:"tracing_conf"`
 	BcsAPI           BcsAPI        `json:"bcs_api"`
 	Activity         Activity      `json:"activity" yaml:"activity"`
 	SharedCluster    SharedCluster `json:"shared_cluster" yaml:"shared_cluster"`
+}
+
+// Authorization configures the user-manager authorization implementation.
+type Authorization struct {
+	Mode string `json:"mode"`
 }
 
 // TracingConf tracing config

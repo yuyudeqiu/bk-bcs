@@ -29,23 +29,20 @@ import (
 	bcshttp "github.com/Tencent/bk-bcs/bcs-common/common/http"
 	"github.com/Tencent/bk-bcs/bcs-common/common/http/httpserver"
 	"github.com/Tencent/bk-bcs/bcs-common/common/ssl"
-	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	"github.com/Tencent/bk-bcs/bcs-common/pkg/i18n"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/go-micro/plugins/v4/registry/etcd"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"go-micro.dev/v4/registry"
 
 	i18n2 "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/i18n"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/job/activity"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/permission"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v3http"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/utils"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/migrations"
 )
 
 var (
@@ -58,9 +55,9 @@ type UserManager struct {
 	config   *config.UserMgrConfig
 	httpServ *httpserver.HttpServer
 
-	IamPermClient iam.PermMigrateClient
-	EtcdRegistry  registry.Registry
+	EtcdRegistry registry.Registry
 
+	authorizer  authorization.Authorizer
 	permService *permission.PermVerifyClient
 }
 
@@ -111,8 +108,8 @@ func (u *UserManager) Start() error {
 	}
 
 	// usermanager api
-	v1http.InitV1Routers(u.httpServ.NewWebService("/usermanager", nil), u.permService)
-	v3http.InitV3Routers(u.httpServ.NewWebService("/usermanager/v3", nil))
+	v1http.InitV1Routers(u.httpServ.NewWebService("/usermanager", nil), u.permService, u.authorizer)
+	v3http.InitV3Routers(u.httpServ.NewWebService("/usermanager/v3", nil), u.authorizer)
 
 	router := u.httpServ.GetRouter()
 	webContainer := u.httpServ.GetWebContainer()
@@ -148,33 +145,17 @@ func Filter(req *restful.Request, resp *restful.Response, chain *restful.FilterC
 }
 
 func (u *UserManager) initPermService() error {
-	permService := permission.NewPermVerifyClient(u.config.PermissionSwitch, u.IamPermClient)
-	u.permService = permService
+	u.permService = permission.NewPermVerifyClient(u.authorizer)
 
 	return nil
 }
 
-func (u *UserManager) initIamPermClient() error {
-
-	opt := &iam.Options{
-		SystemID:    u.config.IAMConfig.SystemID,
-		AppCode:     u.config.IAMConfig.AppCode,
-		AppSecret:   u.config.IAMConfig.AppSecret,
-		External:    u.config.IAMConfig.External,
-		GateWayHost: u.config.IAMConfig.GateWayHost,
-		IAMHost:     u.config.IAMConfig.IAMHost,
-		BkiIAMHost:  u.config.IAMConfig.BkiIAMHost,
-		Metric:      u.config.IAMConfig.Metric,
-		Debug:       u.config.IAMConfig.ServerDebug,
-	}
-	iamCli, err := iam.NewIamMigrateClient(opt)
+func (u *UserManager) initAuthorizer() error {
+	authorizer, err := authorization.New(u.config.Authorization.Mode)
 	if err != nil {
-		blog.Errorf("initIamPermClient failed: %v", err)
 		return err
 	}
-
-	u.IamPermClient = iamCli
-	config.GloablIAMClient = iamCli
+	u.authorizer = authorizer
 	return nil
 }
 
@@ -217,37 +198,6 @@ func (u *UserManager) initEtcdRegistry() error {
 	return nil
 }
 
-// Migrate migrates something.
-//
-// op is a pointer to options.Migration.
-// It is the description of the parameter.
-// The function does not return anything.
-func (u *UserManager) migrate() {
-	go func() {
-		blog.Info("start iam migration")
-		tempVar := map[string]string{
-			"BK_IAM_SYSTEM_ID": u.config.IAMConfig.SystemID,
-			"APP_CODE":         u.config.IAMConfig.AppCode,
-			"BCS_HOST":         u.config.BcsAPI.Host,
-		}
-		d, err := iofs.New(migrations.MigrationFS, ".")
-		if err != nil {
-			blog.Errorf("get migrations files error, %s", err.Error())
-			return
-		}
-		if err := u.IamPermClient.Migrate(sqlstore.GCoreDB.DB(), d, "bk_iam_migrations",
-			5*time.Minute, tempVar); err != nil {
-			if strings.Contains(err.Error(), "no change") {
-				blog.Info("iam migration success")
-				return
-			}
-			blog.Errorf("migrate iam failed, %s", err.Error())
-			return
-		}
-		blog.Info("iam migration success")
-	}()
-}
-
 // initI18n init i18n
 func (u *UserManager) initI18n() {
 	i18n.Instance()
@@ -265,7 +215,7 @@ func (u *UserManager) initUserManagerServer() error {
 		return err
 	}
 
-	err = u.initIamPermClient()
+	err = u.initAuthorizer()
 	if err != nil {
 		return err
 	}
@@ -275,7 +225,6 @@ func (u *UserManager) initUserManagerServer() error {
 		return err
 	}
 
-	u.migrate()
 	u.initI18n()
 
 	return nil

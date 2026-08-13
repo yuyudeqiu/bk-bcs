@@ -30,6 +30,7 @@ import (
 	blog "github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/log"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/parser"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/utils"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/models"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
@@ -61,16 +62,15 @@ const (
 )
 
 // NewPermVerifyClient verify permission client
-func NewPermVerifyClient(swi bool, iam iam.PermClient) *PermVerifyClient {
+func NewPermVerifyClient(authorizer authorization.Authorizer) *PermVerifyClient {
 	return &PermVerifyClient{
-		PermSwitch: swi,
-		PermClient: iam,
+		Authorizer: authorizer,
 	}
 }
 
 // PermVerifyClient permission client
 type PermVerifyClient struct {
-	PermSwitch bool
+	Authorizer authorization.Authorizer
 	PermClient iam.PermClient
 }
 

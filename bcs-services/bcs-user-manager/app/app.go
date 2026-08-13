@@ -95,6 +95,7 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	userMgrConfig.TKE = op.TKE
 	userMgrConfig.PeerToken = op.PeerToken
 	userMgrConfig.PermissionSwitch = op.PermissionSwitch
+	userMgrConfig.Authorization = op.Authorization
 	userMgrConfig.CommunityEdition = op.CommunityEdition
 	userMgrConfig.BcsAPI = &op.BcsAPI
 	userMgrConfig.Activity = op.Activity

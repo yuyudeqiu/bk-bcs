@@ -18,6 +18,7 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/jwt"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/middleware"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/auth"
@@ -26,37 +27,38 @@ import (
 )
 
 // InitV3Routers init v3 version route,
-func InitV3Routers(ws *restful.WebService) {
+func InitV3Routers(ws *restful.WebService, authorizer authorization.Authorizer) {
 	ws.Filter(middleware.RequestIDFilter)
 	ws.Filter(middleware.ProjectFilter)
 	ws.Filter(middleware.TracingFilter)
 	ws.Filter(middleware.LoggingFilter)
 	ws.Filter(middleware.LanguageFilter)
 
-	initActivityLogRouters(ws)
-	initTokenRouters(ws)
+	initActivityLogRouters(ws, authorizer)
+	initTokenRouters(ws, authorizer)
 }
 
 // initActivityLogRouters init activity log api routers
-func initActivityLogRouters(ws *restful.WebService) {
+func initActivityLogRouters(ws *restful.WebService, authorizer authorization.Authorizer) {
 	ws.Route(auth.ManagerAuthFunc(ws.POST("/activity_logs")).To(activity.PushActivities))
-	ws.Route(auth.ProjectEditFunc(auth.TokenAuthenticateV2Func(ws.GET("/projects/{project_code}/activity_logs"))).
+	ws.Route(auth.ProjectEditFunc(authorizer,
+		auth.TokenAuthenticateV2Func(ws.GET("/projects/{project_code}/activity_logs"))).
 		To(activity.SearchActivities))
 	ws.Route(ws.GET("/activity_logs/resource_types").To(activity.ResourceTypes))
 }
 
-func initTokenRouters(ws *restful.WebService) {
+func initTokenRouters(ws *restful.WebService, authorizer authorization.Authorizer) {
 	tokenHandler := token.NewTokenHandler(sqlstore.NewTokenStore(sqlstore.GCoreDB),
 		cache.RDB, jwt.JWTClient)
 	ws.Route(auth.ManagerAuthFunc(ws.POST("/tokens/{project_code}/clients").To(tokenHandler.CreateProjectClient)))
-	ws.Route(auth.ProjectViewFunc(auth.TokenAuthenticateV2Func(
+	ws.Route(auth.ProjectViewFunc(authorizer, auth.TokenAuthenticateV2Func(
 		ws.GET("/tokens/{project_code}/clients"))).To(tokenHandler.GetProjectClients))
-	ws.Route(auth.ProjectViewFunc(auth.TokenAuthenticateV2Func(
+	ws.Route(auth.ProjectViewFunc(authorizer, auth.TokenAuthenticateV2Func(
 		ws.PUT("/tokens/{project_code}/clients/{name}"))).To(tokenHandler.UpdateProjectClient))
-	ws.Route(auth.ProjectViewFunc(auth.TokenAuthenticateV2Func(
+	ws.Route(auth.ProjectViewFunc(authorizer, auth.TokenAuthenticateV2Func(
 		ws.DELETE("/tokens/{project_code}/clients/{name}"))).To(tokenHandler.DeleteProjectClient))
-	ws.Route(auth.ProjectViewFunc(auth.TokenAuthenticateV2Func(
+	ws.Route(auth.ProjectViewFunc(authorizer, auth.TokenAuthenticateV2Func(
 		ws.PUT("/tokens/{project_code}/clients/{name}/authority"))).To(tokenHandler.AuthorizeClient))
-	ws.Route(auth.ProjectViewFunc(auth.TokenAuthenticateV2Func(
+	ws.Route(auth.ProjectViewFunc(authorizer, auth.TokenAuthenticateV2Func(
 		ws.PUT("/tokens/{project_code}/clients/{name}/deauthority"))).To(tokenHandler.DeAuthorizeClient))
 }

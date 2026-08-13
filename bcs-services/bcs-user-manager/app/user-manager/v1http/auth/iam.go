@@ -15,16 +15,13 @@ package auth
 import (
 	"encoding/json"
 
-	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/cloudaccount"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/cluster"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/namespace"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/project"
 	"github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/templateset"
-	authutil "github.com/Tencent/bk-bcs/bcs-services/pkg/bcs-auth/utils"
-	iamsdk "github.com/TencentBlueKing/iam-go-sdk"
 
-	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 )
 
 // PermCtx perm context
@@ -37,100 +34,31 @@ type PermCtx struct {
 	AccountID    string      `json:"account_id"`
 }
 
-// GetResourceNodeFromPermCtx 根据 resource type 拼装 iam.ResourceNode
-func GetResourceNodeFromPermCtx(permCtx *PermCtx) iam.ResourceNode {
-	node := iam.ResourceNode{System: config.GetGlobalConfig().IAMConfig.SystemID, RType: permCtx.ResourceType}
-	switch permCtx.ResourceType {
-	case string(project.SysProject):
-		node.RInstance = permCtx.ProjectID
-		node.Rp = project.ProjectResourcePath{}
-	case string(cluster.SysCluster):
-		node.RInstance = permCtx.ClusterID
-		node.Rp = cluster.ClusterResourcePath{ProjectID: permCtx.ProjectID}
-	case string(namespace.SysNamespace):
-		node.RInstance = authutil.CalcIAMNsID(permCtx.ClusterID, permCtx.Namespace)
-		node.Rp = namespace.NamespaceResourcePath{ProjectID: permCtx.ProjectID, ClusterID: permCtx.ClusterID}
-	case string(templateset.SysTemplateSet):
-		node.RInstance = permCtx.TemplateID.String()
-		node.Rp = templateset.TemplateSetResourcePath{ProjectID: permCtx.ProjectID}
-	case string(cloudaccount.SysCloudAccount):
-		node.RInstance = permCtx.AccountID
-		node.Rp = cloudaccount.AccountResourcePath{ProjectID: permCtx.ProjectID}
-	}
-	return node
-}
-
-// GetApplicationsFromPermCtx 根据 resource type 拼装 iam.ApplicationAction
-func GetApplicationsFromPermCtx(permCtx *PermCtx, actionsID string) []iam.ApplicationAction {
-	apps := make([]iam.ApplicationAction, 0)
+// ResourceFromPermCtx converts the compatibility API context into an internal resource.
+func ResourceFromPermCtx(permCtx *PermCtx) authorization.Resource {
 	if permCtx == nil {
-		return []iam.ApplicationAction{{ActionID: actionsID,
-			RelatedResources: []iamsdk.ApplicationRelatedResourceType{}}}
+		return authorization.Resource{}
+	}
+	resource := authorization.Resource{
+		Type: permCtx.ResourceType,
+		Attributes: map[string]string{
+			"project_id": permCtx.ProjectID,
+			"cluster_id": permCtx.ClusterID,
+		},
 	}
 	switch permCtx.ResourceType {
 	case string(project.SysProject):
-		apps = project.BuildProjectSameInstanceApplication(false, []string{actionsID}, []string{permCtx.ProjectID})
+		resource.ID = permCtx.ProjectID
 	case string(cluster.SysCluster):
-		apps = cluster.BuildClusterSameInstanceApplication(false, []string{actionsID}, []cluster.ProjectClusterData{
-			{
-				Project: permCtx.ProjectID,
-				Cluster: permCtx.ClusterID,
-			},
-		})
+		resource.ID = permCtx.ClusterID
 	case string(namespace.SysNamespace):
-		apps = append(apps, namespace.BuildNamespaceApplicationInstance(namespace.NamespaceApplicationAction{
-			ActionID: actionsID,
-			Data: []namespace.ProjectNamespaceData{{
-				Project:   permCtx.ProjectID,
-				Cluster:   permCtx.ClusterID,
-				Namespace: authutil.CalcIAMNsID(permCtx.ClusterID, permCtx.Namespace),
-			}},
-		}))
+		resource.ID = permCtx.Namespace
 	case string(templateset.SysTemplateSet):
-		instances := make([][]iam.Instance, 0)
-		instances = append(instances, []iam.Instance{
-			{
-				ResourceType: string(project.SysProject),
-				ResourceID:   permCtx.ProjectID,
-			},
-			{
-				ResourceType: string(templateset.SysTemplateSet),
-				ResourceID:   permCtx.TemplateID.String(),
-			},
-		})
-		rr := make([]iamsdk.ApplicationRelatedResourceType, 0)
-		rr = append(rr, authutil.BuildRelatedSystemResource(iam.SystemIDBKBCS, permCtx.ResourceType, instances))
-		apps = []iam.ApplicationAction{
-			{
-				ActionID:         actionsID,
-				RelatedResources: rr,
-			},
-		}
+		resource.ID = permCtx.TemplateID.String()
 	case string(cloudaccount.SysCloudAccount):
-		apps = cloudaccount.BuildAccountSameInstanceApplication(false, []string{actionsID},
-			[]cloudaccount.ProjectAccountData{
-				{
-					Project: permCtx.ProjectID,
-					Account: permCtx.AccountID,
-				},
-			})
-	default:
-		apps = []iam.ApplicationAction{{ActionID: actionsID,
-			RelatedResources: []iamsdk.ApplicationRelatedResourceType{}}}
+		resource.ID = permCtx.AccountID
 	}
-	return apps
-}
-
-// GetApplyURL get apply url
-func GetApplyURL(applications []iam.ApplicationAction) (string, error) {
-	url, err := config.GloablIAMClient.GetApplyURL(iam.ApplicationRequest{
-		SystemID: config.GetGlobalConfig().IAMConfig.SystemID}, applications, iam.BkUser{
-		BkUserName: iam.SystemUser,
-	})
-	if err != nil {
-		return iam.IamAppURL, err
-	}
-	return url, nil
+	return resource
 }
 
 // GetResourceTypeFromAction get resource type from action

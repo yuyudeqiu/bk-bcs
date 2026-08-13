@@ -18,6 +18,7 @@ import (
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/jwt"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/pkg/middleware"
+	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/authorization"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/cache"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/storages/sqlstore"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/app/user-manager/v1http/auth"
@@ -32,7 +33,8 @@ import (
 
 // InitV1Routers init v1 version route,
 // it's compatible with bcs-api
-func InitV1Routers(ws *restful.WebService, service *permission.PermVerifyClient) {
+func InitV1Routers(ws *restful.WebService, service *permission.PermVerifyClient,
+	authorizer authorization.Authorizer) {
 	ws.Filter(middleware.RequestIDFilter)
 	ws.Filter(middleware.TracingFilter)
 	ws.Filter(middleware.LoggingFilter)
@@ -45,8 +47,7 @@ func InitV1Routers(ws *restful.WebService, service *permission.PermVerifyClient)
 	initTkeRouters(ws)
 	initPermissionRouters(ws, service)
 	initTokenRouters(ws)
-	initIAMProviderRouters(ws)
-	initUserPermsRouters(ws)
+	initUserPermsRouters(ws, authorizer)
 }
 
 // initUsersRouters init users api routers
@@ -110,13 +111,9 @@ func initTkeRouters(ws *restful.WebService) {
 	ws.Route(auth.AdminAuthFunc(ws.POST("/v1/tke/{cluster_id}/sync_credentials")).To(tke.SyncTkeClusterCredentials))
 }
 
-// initIAMProviderRouters init iam provider api routers
-func initIAMProviderRouters(ws *restful.WebService) {
-	ws.Route(auth.BKIAMAuthFunc(ws.POST("/v1/iam-provider/resources")).To(iam.ResourceDispatch))
-}
-
 // initUserPermsRouters init user perms api routers
-func initUserPermsRouters(ws *restful.WebService) {
-	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms")).To(iam.GetPerms))
-	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms/actions/{action_id}")).To(iam.GetPermByActionID))
+func initUserPermsRouters(ws *restful.WebService, authorizer authorization.Authorizer) {
+	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms")).To(iam.GetPerms(authorizer)))
+	ws.Route(auth.TokenAuthFunc(ws.POST("/v1/iam/user_perms/actions/{action_id}")).
+		To(iam.GetPermByActionID(authorizer)))
 }

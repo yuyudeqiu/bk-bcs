@@ -17,16 +17,12 @@ import (
 	"crypto/tls"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common/static"
-	"github.com/Tencent/bk-bcs/bcs-common/pkg/auth/iam"
 	registry "github.com/Tencent/bk-bcs/bcs-common/pkg/registry"
 
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/options"
 )
 
 var userManagerConfig *UserMgrConfig
-
-// GloablIAMClient global iam client
-var GloablIAMClient iam.PermClient
 
 // SetGlobalConfig global config
 func SetGlobalConfig(config *UserMgrConfig) {
@@ -106,6 +102,7 @@ type UserMgrConfig struct {
 	EtcdConfig registry.CMDOptions
 
 	PermissionSwitch bool
+	Authorization    options.Authorization
 	CommunityEdition bool
 	BcsAPI           *options.BcsAPI
 
