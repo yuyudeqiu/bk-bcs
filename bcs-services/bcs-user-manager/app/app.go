@@ -127,20 +127,11 @@ func parseConfig(op *options.UserManagerOptions) (*config.UserMgrConfig, error) 
 	}
 	userMgrConfig.DSN = string(dsn)
 
-	redisDSN, err := encrypt.DesDecryptFromBase([]byte(op.RedisDSN))
-	if err != nil {
-		return nil, fmt.Errorf("error decrypting redis config and exit: %s", err.Error())
+	redisConfig, aErr := parseRedisConfig(op.RedisConfig)
+	if aErr != nil {
+		return nil, fmt.Errorf("error parsing redis config and exit: %s", aErr.Error())
 	}
-	userMgrConfig.RedisDSN = string(redisDSN)
-
-	// RedisDSN 没有配置，检查 RedisConfig
-	if userMgrConfig.RedisDSN == "" {
-		redisConfig, aErr := parseRedisConfig(op.RedisConfig)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing redis config and exit: %s", aErr.Error())
-		}
-		userMgrConfig.RedisConfig = redisConfig
-	}
+	userMgrConfig.RedisConfig = redisConfig
 
 	userMgrConfig.VerifyClientTLS = op.VerifyClientTLS
 

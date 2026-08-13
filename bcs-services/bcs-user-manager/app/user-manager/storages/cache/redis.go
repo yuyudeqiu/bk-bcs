@@ -31,13 +31,9 @@ var RDB Cache
 func InitRedis(conf *config.UserMgrConfig) error {
 	var client redisclient.Client
 	var err error
-	if conf.RedisDSN != "" {
-		client, err = redisclient.NewSingleClientFromDSN(conf.RedisDSN)
-	} else {
-		redisConf := parseRedisConfig(conf)
-		client, err = redisclient.NewClient(redisConf)
-	}
-	if err != nil {
+
+	redisConf := parseRedisConfig(conf)
+	if client, err = redisclient.NewClient(redisConf); err != nil {
 		return err
 	}
 

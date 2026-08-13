@@ -96,7 +96,6 @@ type UserMgrConfig struct {
 
 	DSN             string
 	SlowSQLLatency  uint
-	RedisDSN        string
 	RedisConfig     RedisConfig
 	EnableTokenSync bool
 	BootStrapUsers  []options.BootStrapUser
