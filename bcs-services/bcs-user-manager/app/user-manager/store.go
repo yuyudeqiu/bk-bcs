@@ -38,7 +38,7 @@ func SetupStore(conf *config.UserMgrConfig) error {
 	}
 
 	// Migrate db schemas
-	sqlstore.GCoreDB.AutoMigrate(
+	if err := sqlstore.GCoreDB.AutoMigrate(
 		&models.BcsUser{},
 		&models.BcsCluster{},
 		&models.BcsRegisterToken{},
@@ -52,11 +52,17 @@ func SetupStore(conf *config.UserMgrConfig) error {
 		&models.BcsTempToken{},
 		&models.Activity{},
 		&models.BcsClient{},
-	)
+	); err != nil {
+		return fmt.Errorf("migrate database schemas: %w", err)
+	}
 
 	// remove user name Constraints, because we will soft delete token on db when user destroy there token,
 	// so we can't use unique index to check user name
-	sqlstore.GCoreDB.Migrator().DropIndex(&models.BcsUser{}, "name")
+	if sqlstore.GCoreDB.Migrator().HasIndex(&models.BcsUser{}, "name") {
+		if err := sqlstore.GCoreDB.Migrator().DropIndex(&models.BcsUser{}, "name"); err != nil {
+			return fmt.Errorf("drop bcs user name index: %w", err)
+		}
+	}
 
 	err := createBootstrapUsers(conf.BootStrapUsers)
 	if err != nil {

@@ -90,13 +90,17 @@ func NewUserManager(conf *config.UserMgrConfig) *UserManager {
 // Start entry point for user-manager
 func (u *UserManager) Start() error {
 	// init redis
+	blog.Infof("initializing redis connection")
 	if err := cache.InitRedis(u.config); err != nil {
-		return err
+		return fmt.Errorf("initialize redis: %w", err)
 	}
+	blog.Infof("initialized redis connection")
 
+	blog.Infof("initializing database store")
 	if err := SetupStore(u.config); err != nil {
 		return err
 	}
+	blog.Infof("initialized database store")
 
 	// 定时清理操作记录
 	go func() {

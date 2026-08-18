@@ -23,8 +23,11 @@ import (
 
 	godbsdk "code.cwoa.net/carlchen2/cw-godb-sdk/core/config"
 	gormsdk "code.cwoa.net/carlchen2/cw-godb-sdk/gorm"
+	"github.com/Tencent/bk-bcs/bcs-common/common/blog"
 	"github.com/Tencent/bk-bcs/bcs-services/bcs-user-manager/config"
 )
+
+const defaultGaussDBConnectTimeoutSecond = 10
 
 // GCoreDB global DB client
 var GCoreDB *gorm.DB
@@ -87,12 +90,17 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 		if conf.DatabaseConfig.ConnMaxLifetimeSecond > 0 {
 			dbConfig.ConnMaxLifetimeSecond = conf.DatabaseConfig.ConnMaxLifetimeSecond
 		}
+		normalizeSDKDatabaseConfig(&dbConfig)
 
+		blog.Infof("initializing %s database connection to %s:%d/%s", conf.DatabaseConfig.DBType,
+			conf.DatabaseConfig.DBHost, conf.DatabaseConfig.DBPort, conf.DatabaseConfig.DBName)
 		client, err := gormsdk.NewClient(dbConfig, logger.Default.LogMode(logger.Silent))
 		if err != nil {
-			return err
+			return fmt.Errorf("connect to %s database %s:%d/%s: %w", conf.DatabaseConfig.DBType,
+				conf.DatabaseConfig.DBHost, conf.DatabaseConfig.DBPort, conf.DatabaseConfig.DBName, err)
 		}
 		db = client.DB()
+		blog.Infof("initialized %s database connection", conf.DatabaseConfig.DBType)
 	} else {
 		return fmt.Errorf("core_database dsn not configured and database_config is empty")
 	}
@@ -103,6 +111,30 @@ func InitCoreDatabase(conf *config.UserMgrConfig) error {
 
 	GCoreDB = db
 	return nil
+}
+
+// normalizeSDKDatabaseConfig adapts user-manager configuration to the SDK's DSN builder.
+// The SDK only writes sslmode when TLS.Enable is true. For GaussDB, omitting sslmode
+// makes the driver use "prefer", which attempts TLS even when the user explicitly
+// disabled it. Enable here means "emit the SSL option"; mode=disable still disables TLS.
+func normalizeSDKDatabaseConfig(dbConfig *godbsdk.Database) {
+	if dbConfig == nil || dbConfig.Typex != godbsdk.Gaussdb {
+		return
+	}
+
+	if !dbConfig.Ssl.Enable {
+		dbConfig.Ssl.Enable = true
+		dbConfig.Ssl.Mode = "disable"
+	}
+
+	// gorm.Open performs an automatic ping. Bound that first connection attempt so
+	// a network or server problem is returned instead of leaving the Pod startup hung.
+	if dbConfig.Params == nil {
+		dbConfig.Params = make(map[string]string)
+	}
+	if _, ok := dbConfig.Params["connect_timeout"]; !ok {
+		dbConfig.Params["connect_timeout"] = fmt.Sprintf("%d", defaultGaussDBConnectTimeoutSecond)
+	}
 }
 
 func sdkDatabaseType(dbType string) godbsdk.DatabaseType {
