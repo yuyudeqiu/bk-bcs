@@ -299,17 +299,33 @@ func (u *UserManager) migrate() {
 // MigrateIAM migrates IAM models according to the configured database type.
 func (u *UserManager) MigrateIAM(sqlDB *sql.DB, d source.Driver, migrateTable string, timeout time.Duration,
 	tempVar interface{}) error {
-	if !requiresLocklessIAMMigration(u.config.DatabaseConfig.DBType) {
+	databaseType := iamMigrationDatabaseType(u.config.DatabaseConfig.DBType)
+	noLock := requiresLocklessIAMMigration(u.config.DatabaseConfig.DBType)
+	if databaseType == "" && !noLock {
 		return u.IamPermClient.Migrate(sqlDB, d, migrateTable, timeout, tempVar)
 	}
 
 	iamCli := newIAMSDKClient(u.config)
 	return iamCli.MigrateWithConfig(sqlDB, d, &iammigrate.Config{
+		DatabaseType:     databaseType,
 		MigrationsTable:  migrateTable,
 		StatementTimeout: timeout,
 		TemplateVar:      tempVar,
-		NoLock:           true,
+		NoLock:           noLock,
 	})
+}
+
+func iamMigrationDatabaseType(dbType string) string {
+	switch strings.ToLower(dbType) {
+	case "postgres", "postgresql":
+		return "postgres"
+	case "gaussdb":
+		return "gaussdb"
+	case "opengauss":
+		return "opengauss"
+	default:
+		return ""
+	}
 }
 
 func requiresLocklessIAMMigration(dbType string) bool {
